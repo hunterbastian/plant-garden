@@ -4,31 +4,31 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: oklch(0.96 0.01 80);
+  --foreground: oklch(0.25 0.04 50);
+  --card: oklch(0.98 0.005 80);
+  --card-foreground: oklch(0.25 0.04 50);
+  --popover: oklch(0.98 0.005 80);
+  --popover-foreground: oklch(0.25 0.04 50);
+  --primary: oklch(0.45 0.12 145);
+  --primary-foreground: oklch(0.98 0.005 80);
+  --secondary: oklch(0.85 0.04 75);
+  --secondary-foreground: oklch(0.3 0.05 50);
+  --muted: oklch(0.92 0.02 75);
+  --muted-foreground: oklch(0.5 0.03 50);
+  --accent: oklch(0.55 0.1 145);
+  --accent-foreground: oklch(0.98 0.005 80);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.85 0.04 75);
+  --input: oklch(0.88 0.03 75);
+  --ring: oklch(0.55 0.1 145);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -122,4 +122,91 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Seed bag shake animation */
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-12deg); }
+  20% { transform: rotate(10deg); }
+  30% { transform: rotate(-10deg); }
+  40% { transform: rotate(8deg); }
+  50% { transform: rotate(-6deg); }
+  60% { transform: rotate(4deg); }
+  70% { transform: rotate(-2deg); }
+  80% { transform: rotate(1deg); }
+  90% { transform: rotate(0deg); }
+}
+
+.animate-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+/* Seed falling animations */
+@keyframes seed-fall-1 {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(-8px, 60px); opacity: 0; }
+}
+
+@keyframes seed-fall-2 {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(6px, 55px); opacity: 0; }
+}
+
+@keyframes seed-fall-3 {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(-2px, 65px); opacity: 0; }
+}
+
+.animate-seed-fall-1 {
+  animation: seed-fall-1 0.6s ease-in forwards;
+}
+
+.animate-seed-fall-2 {
+  animation: seed-fall-2 0.5s ease-in 0.1s forwards;
+}
+
+.animate-seed-fall-3 {
+  animation: seed-fall-3 0.55s ease-in 0.05s forwards;
+}
+
+/* Plant appear */
+@keyframes plant-appear {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+.animate-plant-appear {
+  animation: plant-appear 0.4s ease-out forwards;
+}
+
+/* Plant grow up */
+@keyframes grow-up {
+  0% { transform: scaleY(0); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+.animate-grow-up {
+  animation: grow-up 0.8s ease-out forwards;
+}
+
+/* Fade in */
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+/* Bloom animation */
+@keyframes bloom {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bloom {
+  animation: bloom 0.6s ease-out forwards;
 }

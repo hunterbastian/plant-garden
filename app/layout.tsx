@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Plant Garden',
+  description: 'A cozy little plant sim - shake the seed bag and grow your garden',
   generator: 'v0.app',
   icons: {
     icon: [

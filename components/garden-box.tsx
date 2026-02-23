@@ -56,14 +56,14 @@ export function GardenBox() {
           className="text-xl font-light tracking-[0.2em] text-foreground font-serif"
           style={{ letterSpacing: "0.2em" }}
         >
-          {"seed"}
+          {"plant-garden"}
         </h1>
         <div
           className="mx-auto mt-3"
           style={{ width: 24, height: 1, backgroundColor: "#3d3832", opacity: 0.3 }}
         />
         <p className="text-xs text-muted-foreground mt-3 font-sans tracking-widest uppercase">
-          shake to plant
+          &nbsp;
         </p>
       </div>
 

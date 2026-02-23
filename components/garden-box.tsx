@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react"
 import { SeedBag } from "./seed-bag"
 import { Plant, type PlantStage, type PlantType } from "./plant"
 import { SeedShop } from "./seed-shop"
+import { WateringCan } from "./watering-can"
 
 interface PlantData {
   id: number
@@ -11,6 +12,7 @@ interface PlantData {
   stage: PlantStage
   type: PlantType
   delay: number
+  watered: boolean
 }
 
 export function GardenBox() {
@@ -52,6 +54,7 @@ export function GardenBox() {
           stage,
           type: selectedSeed,
           delay: 300 + i * 400,
+          watered: false,
         })
       }
 
@@ -86,6 +89,39 @@ export function GardenBox() {
       setSelectedSeed(type)
     },
     [coins],
+  )
+
+  const handleWater = useCallback(
+    (canCenterX: number) => {
+      if (!gardenRef.current || plants.length === 0) return
+
+      const rect = gardenRef.current.getBoundingClientRect()
+      const relX = ((canCenterX - rect.left) / rect.width) * 100
+
+      // Find the closest un-watered plant within range
+      let closestIdx = -1
+      let closestDist = 20 // max distance in % to water
+
+      plants.forEach((plant, i) => {
+        if (plant.watered) return
+        const dist = Math.abs(plant.x - relX)
+        if (dist < closestDist) {
+          closestDist = dist
+          closestIdx = i
+        }
+      })
+
+      if (closestIdx >= 0) {
+        setPlants((prev) =>
+          prev.map((p, i) =>
+            i === closestIdx ? { ...p, watered: true } : p,
+          ),
+        )
+        // Earn a coin for watering
+        setCoins((prev) => prev + 1)
+      }
+    },
+    [plants],
   )
 
   const handleClear = useCallback(() => {
@@ -169,12 +205,16 @@ export function GardenBox() {
                 stage={plant.stage}
                 type={plant.type}
                 delay={plant.delay}
+                watered={plant.watered}
               />
             ))}
           </div>
 
           {/* Seed bag */}
           <SeedBag onShake={handleShake} containerRef={gardenRef} />
+
+          {/* Watering can */}
+          <WateringCan onWater={handleWater} containerRef={gardenRef} />
         </div>
 
         {/* Ground */}

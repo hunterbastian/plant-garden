@@ -10,6 +10,7 @@ interface PlantProps {
   stage: PlantStage
   type: PlantType
   delay: number
+  watered?: boolean
 }
 
 // Muted, ink-wash palette
@@ -20,7 +21,7 @@ const COLORS: Record<PlantType, { stem: string; leaf: string; accent: string }> 
   orchid:  { stem: "#6b7a5e", leaf: "#7d8e6e", accent: "#b8a0a0" },
 }
 
-export function Plant({ x, stage, type, delay }: PlantProps) {
+export function Plant({ x, stage, type, delay, watered }: PlantProps) {
   const [visible, setVisible] = useState(false)
   const [currentStage, setCurrentStage] = useState<PlantStage>("seed")
   const c = COLORS[type]
@@ -46,6 +47,18 @@ export function Plant({ x, stage, type, delay }: PlantProps) {
       className="absolute bottom-0 animate-appear"
       style={{ left: `${x}%`, transform: "translateX(-50%)" }}
     >
+      {/* Watered shimmer */}
+      {watered && (
+        <div className="absolute inset-0 pointer-events-none animate-shimmer">
+          <svg width="36" height="56" viewBox="0 0 36 56" className="overflow-visible">
+            <circle cx="12" cy="20" r="1.5" fill="#8aacbc" opacity="0.6" />
+            <circle cx="24" cy="14" r="1" fill="#8aacbc" opacity="0.5" />
+            <circle cx="18" cy="26" r="1.2" fill="#8aacbc" opacity="0.4" />
+            <circle cx="10" cy="32" r="0.8" fill="#8aacbc" opacity="0.5" />
+            <circle cx="26" cy="30" r="1" fill="#8aacbc" opacity="0.3" />
+          </svg>
+        </div>
+      )}
       <svg width="36" height="56" viewBox="0 0 36 56" className="overflow-visible">
         {/* Seed */}
         {currentStage === "seed" && (

@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react"
 import { SeedBag } from "./seed-bag"
 import { Plant, type PlantStage, type PlantType } from "./plant"
+import { SeedShop } from "./seed-shop"
 
 interface PlantData {
   id: number
@@ -12,17 +13,26 @@ interface PlantData {
   delay: number
 }
 
-const PLANT_TYPES: PlantType[] = ["bamboo", "bonsai", "moss", "orchid"]
-
 export function GardenBox() {
   const [plants, setPlants] = useState<PlantData[]>([])
   const [nextId, setNextId] = useState(0)
   const [seedsDropped, setSeedsDropped] = useState(0)
+  const [coins, setCoins] = useState(5)
+  const [selectedSeed, setSelectedSeed] = useState<PlantType>("bamboo")
+  const [inventory, setInventory] = useState<Record<PlantType, number>>({
+    bamboo: 99,
+    bonsai: 0,
+    moss: 0,
+    orchid: 0,
+  })
   const gardenRef = useRef<HTMLDivElement>(null)
 
   const handleShake = useCallback(
     (bagCenterX: number) => {
       if (!gardenRef.current) return
+
+      // Check if we have seeds to plant
+      if (inventory[selectedSeed] <= 0 && selectedSeed !== "bamboo") return
 
       const rect = gardenRef.current.getBoundingClientRect()
       const relX = ((bagCenterX - rect.left) / rect.width) * 100
@@ -33,7 +43,6 @@ export function GardenBox() {
 
       for (let i = 0; i < numSeeds; i++) {
         const spreadX = clampedX + (Math.random() - 0.5) * 10
-        const type = PLANT_TYPES[Math.floor(Math.random() * PLANT_TYPES.length)]
         const stages: PlantStage[] = ["sprout", "growing", "blooming"]
         const stage = stages[Math.floor(Math.random() * stages.length)]
 
@@ -41,7 +50,7 @@ export function GardenBox() {
           id: nextId + i,
           x: Math.max(5, Math.min(95, spreadX)),
           stage,
-          type,
+          type: selectedSeed,
           delay: 300 + i * 400,
         })
       }
@@ -49,8 +58,34 @@ export function GardenBox() {
       setPlants((prev) => [...prev, ...newPlants])
       setNextId((prev) => prev + numSeeds)
       setSeedsDropped((prev) => prev + numSeeds)
+
+      // Use seeds from inventory (bamboo is unlimited)
+      if (selectedSeed !== "bamboo") {
+        setInventory((prev) => ({
+          ...prev,
+          [selectedSeed]: Math.max(0, prev[selectedSeed] - numSeeds),
+        }))
+      }
+
+      // Earn a coin for every 3 plants
+      if ((seedsDropped + numSeeds) % 3 === 0) {
+        setCoins((prev) => prev + 1)
+      }
     },
-    [nextId],
+    [nextId, selectedSeed, inventory, seedsDropped],
+  )
+
+  const handleBuySeed = useCallback(
+    (type: PlantType, price: number) => {
+      if (coins < price) return
+      setCoins((prev) => prev - price)
+      setInventory((prev) => ({
+        ...prev,
+        [type]: prev[type] + 5,
+      }))
+      setSelectedSeed(type)
+    },
+    [coins],
   )
 
   const handleClear = useCallback(() => {
@@ -79,7 +114,7 @@ export function GardenBox() {
         />
       </div>
 
-      {/* Unified garden canvas - bag + scene + ground in one bordered box */}
+      {/* Unified garden canvas */}
       <div
         ref={gardenRef}
         className="relative w-full overflow-hidden"
@@ -94,6 +129,15 @@ export function GardenBox() {
       >
         {/* Canvas area */}
         <div className="relative" style={{ height: 360 }}>
+          {/* Shop */}
+          <SeedShop
+            coins={coins}
+            selectedSeed={selectedSeed}
+            onSelectSeed={setSelectedSeed}
+            onBuySeed={handleBuySeed}
+            inventory={inventory}
+          />
+
           {/* Enso circle */}
           <svg
             className="absolute pointer-events-none"
@@ -130,7 +174,7 @@ export function GardenBox() {
             ))}
           </div>
 
-          {/* Seed bag - draggable across the full canvas */}
+          {/* Seed bag */}
           <SeedBag onShake={handleShake} containerRef={gardenRef} />
         </div>
 
@@ -165,7 +209,7 @@ export function GardenBox() {
         </div>
       </div>
 
-      {/* Counter */}
+      {/* Counter & controls */}
       <div className="flex items-center gap-6">
         <span className="text-xs text-muted-foreground font-sans tracking-wide">
           {seedsDropped === 0 ? "\u00A0" : `${seedsDropped}`}

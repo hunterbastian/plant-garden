@@ -18,7 +18,6 @@ const SEED_CATALOG: Omit<SeedItem, "owned">[] = [
   { type: "orchid", name: "Orchid", price: 5, description: "Rare elegance" },
 ]
 
-// Ink-wash preview SVGs for each seed type
 function SeedPreview({ type }: { type: PlantType }) {
   const previewMap: Record<PlantType, React.ReactNode> = {
     bamboo: (
@@ -75,19 +74,20 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
 
   return (
     <>
-      {/* Shop toggle button */}
+      {/* Shop toggle -- 44px min touch target */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute z-30 transition-all duration-300"
+        className="absolute z-30 flex items-center justify-center transition-all duration-300"
         style={{
-          top: 12,
-          left: 12,
+          top: 8,
+          left: 8,
+          width: 44,
+          height: 44,
           cursor: "pointer",
         }}
-        aria-label="Open seed shop"
+        aria-label={isOpen ? "Close seed shop" : "Open seed shop"}
       >
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          {/* Shop / torii gate icon */}
           <line x1="4" y1="8" x2="24" y2="8" stroke="#3d3832" strokeWidth="1.5" strokeLinecap="round" opacity={isOpen ? 0.8 : 0.35} />
           <line x1="6" y1="5" x2="22" y2="5" stroke="#3d3832" strokeWidth="1" strokeLinecap="round" opacity={isOpen ? 0.6 : 0.25} />
           <line x1="8" y1="8" x2="7" y2="24" stroke="#3d3832" strokeWidth="1.3" strokeLinecap="round" opacity={isOpen ? 0.8 : 0.35} />
@@ -96,37 +96,46 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
         </svg>
       </button>
 
+      {/* Backdrop on mobile to close shop by tapping outside */}
+      {isOpen && (
+        <div
+          className="absolute inset-0 z-25"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Shop panel */}
       <div
         className="absolute z-30 transition-all duration-500 ease-out"
         style={{
-          top: 44,
-          left: isOpen ? 12 : -220,
-          width: 200,
+          top: 52,
+          left: isOpen ? 8 : -240,
+          width: "min(220px, calc(100% - 16px))",
           opacity: isOpen ? 1 : 0,
         }}
       >
         <div
           style={{
-            backgroundColor: "rgba(245, 242, 237, 0.95)",
+            backgroundColor: "rgba(245, 242, 237, 0.97)",
             border: "1px solid #d6cfc4",
             borderRadius: 2,
-            padding: "16px 14px",
+            padding: "14px 12px",
           }}
         >
           {/* Coins display */}
-          <div className="flex items-center gap-2 mb-4">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <div className="flex items-center gap-2 mb-3">
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="6" stroke="#3d3832" strokeWidth="0.8" opacity="0.5" />
               <rect x="5" y="5" width="4" height="4" rx="0.5" stroke="#3d3832" strokeWidth="0.6" opacity="0.4" />
             </svg>
-            <span className="text-xs font-sans tracking-widest text-foreground" style={{ opacity: 0.6 }}>
+            <span className="text-sm font-sans tracking-widest text-foreground" style={{ opacity: 0.6 }}>
               {coins}
             </span>
           </div>
 
           {/* Seed list */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             {SEED_CATALOG.map((seed) => {
               const owned = inventory[seed.type] ?? 0
               const isSelected = selectedSeed === seed.type
@@ -145,7 +154,8 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
                   }}
                   className="flex items-center gap-3 w-full text-left transition-all duration-200"
                   style={{
-                    padding: "8px 6px",
+                    padding: "10px 8px",
+                    minHeight: 48,
                     borderRadius: 2,
                     border: isSelected ? "1px solid #3d3832" : "1px solid transparent",
                     opacity: !isUnlocked && !canAfford ? 0.35 : 1,
@@ -157,20 +167,20 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
                   <div className="flex-shrink-0" style={{ width: 28, height: 36 }}>
                     <SeedPreview type={seed.type} />
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-serif tracking-wider text-foreground" style={{ opacity: 0.7 }}>
+                  <div className="flex flex-col min-w-0 gap-0.5">
+                    <span className="text-sm font-serif tracking-wider text-foreground" style={{ opacity: 0.7 }}>
                       {seed.name}
                     </span>
-                    <span className="text-xs font-sans text-muted-foreground" style={{ fontSize: 10 }}>
+                    <span className="text-xs font-sans text-muted-foreground">
                       {seed.description}
                     </span>
                     {!isUnlocked && (
-                      <span className="text-xs font-sans text-muted-foreground mt-0.5" style={{ fontSize: 10 }}>
+                      <span className="text-xs font-sans text-muted-foreground">
                         {seed.price} coins
                       </span>
                     )}
                     {isSelected && (
-                      <span className="text-xs font-sans tracking-widest uppercase text-muted-foreground mt-0.5" style={{ fontSize: 9 }}>
+                      <span className="text-xs font-sans tracking-widest uppercase text-muted-foreground" style={{ fontSize: 10 }}>
                         selected
                       </span>
                     )}

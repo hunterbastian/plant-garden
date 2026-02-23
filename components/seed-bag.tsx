@@ -201,8 +201,9 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
       onPointerCancel={handlePointerUp}
       className="absolute z-20 touch-none select-none"
       style={{
-        top: 12,
+        top: 16,
         left: "50%",
+        padding: 8,
         transform: `translate(calc(-50% + ${pos.x}px), ${pos.y}px) rotate(${rotation}deg) scaleX(${squish.x}) scaleY(${squish.y})`,
         transition: isDragging ? "none" : "transform 0.08s ease-out",
         cursor: isDragging ? "grabbing" : "grab",

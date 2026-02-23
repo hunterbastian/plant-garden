@@ -94,7 +94,7 @@ export function GardenBox() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-10 w-full max-w-md mx-auto">
+    <div className="flex flex-col items-center gap-6 md:gap-10 w-full max-w-md mx-auto">
       {/* Title */}
       <div className="text-center">
         <h1
@@ -119,7 +119,6 @@ export function GardenBox() {
         ref={gardenRef}
         className="relative w-full overflow-hidden"
         style={{
-          minWidth: 300,
           border: "1px solid #d6cfc4",
           borderRadius: 2,
           backgroundColor: "#f5f2ed",
@@ -127,8 +126,8 @@ export function GardenBox() {
           userSelect: "none",
         }}
       >
-        {/* Canvas area */}
-        <div className="relative" style={{ height: 360 }}>
+        {/* Canvas area -- aspect-ratio keeps it proportional on all screens */}
+        <div className="relative" style={{ height: "clamp(280px, 60vw, 400px)" }}>
           {/* Shop */}
           <SeedShop
             coins={coins}
@@ -218,6 +217,7 @@ export function GardenBox() {
           <button
             onClick={handleClear}
             className="text-xs text-muted-foreground font-sans tracking-widest uppercase hover:text-foreground transition-colors"
+            style={{ minHeight: 44, minWidth: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
           >
             clear
           </button>

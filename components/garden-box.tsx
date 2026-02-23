@@ -12,7 +12,7 @@ interface PlantData {
   delay: number
 }
 
-const PLANT_TYPES: PlantType[] = ["flower", "tulip", "succulent", "fern"]
+const PLANT_TYPES: PlantType[] = ["bamboo", "bonsai", "moss", "orchid"]
 
 export function GardenBox() {
   const [plants, setPlants] = useState<PlantData[]>([])
@@ -24,7 +24,7 @@ export function GardenBox() {
     const newPlants: PlantData[] = []
 
     for (let i = 0; i < numSeeds; i++) {
-      const x = 8 + Math.random() * 84
+      const x = 10 + Math.random() * 80
       const type = PLANT_TYPES[Math.floor(Math.random() * PLANT_TYPES.length)]
       const stages: PlantStage[] = ["sprout", "growing", "blooming"]
       const stage = stages[Math.floor(Math.random() * stages.length)]
@@ -34,7 +34,7 @@ export function GardenBox() {
         x,
         stage,
         type,
-        delay: 200 + i * 300,
+        delay: 300 + i * 400,
       })
     }
 
@@ -49,59 +49,61 @@ export function GardenBox() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
+    <div className="flex flex-col items-center gap-10 w-full max-w-md mx-auto">
       {/* Title */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-sans">
-          Plant Garden
+        <h1
+          className="text-xl font-light tracking-[0.2em] text-foreground font-serif"
+          style={{ letterSpacing: "0.2em" }}
+        >
+          {"seed"}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1 font-sans">
-          Shake the seed bag to grow your garden
+        <div
+          className="mx-auto mt-3"
+          style={{ width: 24, height: 1, backgroundColor: "#3d3832", opacity: 0.3 }}
+        />
+        <p className="text-xs text-muted-foreground mt-3 font-sans tracking-widest uppercase">
+          shake to plant
         </p>
       </div>
 
-      {/* Seed bag area */}
+      {/* Seed bag */}
       <SeedBag onShake={handleShake} />
 
-      {/* Garden box */}
-      <div className="relative w-full" style={{ minWidth: 320 }}>
-        {/* The box frame */}
+      {/* Garden scene */}
+      <div className="relative w-full" style={{ minWidth: 300 }}>
         <div
-          className="relative overflow-hidden rounded-xl"
+          className="relative overflow-hidden"
           style={{
-            border: "3px solid #8b6342",
-            backgroundColor: "#87CEEB",
+            border: "1px solid #d6cfc4",
+            borderRadius: 2,
+            backgroundColor: "#f5f2ed",
           }}
         >
-          {/* Sky area */}
-          <div className="relative" style={{ height: 200 }}>
-            {/* Sun */}
-            <div
-              className="absolute rounded-full"
-              style={{
-                top: 16,
-                right: 24,
-                height: 40,
-                width: 40,
-                backgroundColor: "#f5c542",
-                boxShadow: "0 0 20px rgba(245,197,66,0.5)",
-              }}
-            />
+          {/* Empty space / sky - very minimal, just a soft warm white */}
+          <div className="relative" style={{ height: 220 }}>
+            {/* Subtle ink-wash circle in background like an enso */}
+            <svg
+              className="absolute"
+              style={{ top: 16, right: 20, opacity: 0.06 }}
+              width="60"
+              height="60"
+              viewBox="0 0 60 60"
+            >
+              <circle
+                cx="30"
+                cy="30"
+                r="26"
+                fill="none"
+                stroke="#3d3832"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray="120 40"
+              />
+            </svg>
 
-            {/* Clouds */}
-            <div className="absolute flex" style={{ top: 24, left: 32 }}>
-              <div className="rounded-full" style={{ height: 16, width: 32, backgroundColor: "white", opacity: 0.8 }} />
-              <div className="rounded-full" style={{ height: 24, width: 40, backgroundColor: "white", opacity: 0.8, marginLeft: -12, marginTop: -4 }} />
-              <div className="rounded-full" style={{ height: 16, width: 32, backgroundColor: "white", opacity: 0.8, marginLeft: -12 }} />
-            </div>
-            <div className="absolute flex" style={{ top: 48, left: "50%" }}>
-              <div className="rounded-full" style={{ height: 12, width: 24, backgroundColor: "white", opacity: 0.6 }} />
-              <div className="rounded-full" style={{ height: 20, width: 32, backgroundColor: "white", opacity: 0.6, marginLeft: -8, marginTop: -4 }} />
-              <div className="rounded-full" style={{ height: 12, width: 24, backgroundColor: "white", opacity: 0.6, marginLeft: -8 }} />
-            </div>
-
-            {/* Plants grow here */}
-            <div className="absolute left-0 right-0" style={{ bottom: 0, height: 140 }}>
+            {/* Plants area */}
+            <div className="absolute left-0 right-0" style={{ bottom: 0, height: 160 }}>
               {plants.map((plant) => (
                 <Plant
                   key={plant.id}
@@ -114,70 +116,46 @@ export function GardenBox() {
             </div>
           </div>
 
-          {/* Soil layers */}
+          {/* Ground - simple stone/sand line */}
           <div className="relative">
-            {/* Grass line */}
-            <div style={{ height: 8, backgroundColor: "#5a8a3c" }} />
-            {/* Top soil */}
-            <div style={{ height: 24, backgroundColor: "#6b4c2a" }}>
-              {/* Soil texture dots */}
-              <div className="flex items-center justify-around h-full px-4" style={{ opacity: 0.3 }}>
-                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <div
-                    key={i}
-                    className="rounded-full"
-                    style={{
-                      height: i % 2 === 0 ? 6 : 4,
-                      width: i % 2 === 0 ? 6 : 4,
-                      backgroundColor: i % 2 === 0 ? "#5c3d1f" : "#8b6342",
-                    }}
-                  />
-                ))}
-              </div>
+            {/* Fine line */}
+            <div style={{ height: 1, backgroundColor: "#c4bdb2" }} />
+            {/* Sand/earth area */}
+            <div
+              className="flex items-center justify-around px-8"
+              style={{ height: 28, backgroundColor: "#ece7df" }}
+            >
+              {/* Tiny pebble marks */}
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-full"
+                  style={{
+                    height: i % 2 === 0 ? 3 : 2,
+                    width: i % 2 === 0 ? 3 : 2,
+                    backgroundColor: "#c4bdb2",
+                    opacity: 0.5,
+                  }}
+                />
+              ))}
             </div>
-            {/* Deep soil */}
-            <div style={{ height: 16, backgroundColor: "#5c3d1f", borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }} />
+            {/* Darker earth */}
+            <div style={{ height: 8, backgroundColor: "#d6cfc4", borderBottomLeftRadius: 1, borderBottomRightRadius: 1 }} />
           </div>
         </div>
-
-        {/* Wooden planter sides */}
-        <div
-          className="absolute"
-          style={{
-            left: -4,
-            top: 0,
-            bottom: 0,
-            width: 8,
-            backgroundColor: "#8b6342",
-            borderTopLeftRadius: 8,
-            borderBottomLeftRadius: 8,
-          }}
-        />
-        <div
-          className="absolute"
-          style={{
-            right: -4,
-            top: 0,
-            bottom: 0,
-            width: 8,
-            backgroundColor: "#8b6342",
-            borderTopRightRadius: 8,
-            borderBottomRightRadius: 8,
-          }}
-        />
       </div>
 
-      {/* Stats & controls */}
-      <div className="flex items-center gap-4">
-        <span className="text-xs text-muted-foreground font-sans">
-          {seedsDropped} seed{seedsDropped !== 1 ? "s" : ""} planted
+      {/* Counter */}
+      <div className="flex items-center gap-6">
+        <span className="text-xs text-muted-foreground font-sans tracking-wide">
+          {seedsDropped === 0 ? "\u00A0" : `${seedsDropped}`}
         </span>
         {plants.length > 0 && (
           <button
             onClick={handleClear}
-            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors font-sans"
+            className="text-xs text-muted-foreground font-sans tracking-widest uppercase hover:text-foreground transition-colors"
           >
-            Clear garden
+            clear
           </button>
         )}
       </div>

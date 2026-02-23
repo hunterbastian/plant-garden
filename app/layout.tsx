@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Noto_Serif_JP } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const _notoSerifJP = Noto_Serif_JP({ subsets: ["latin"], weight: ["300", "400", "500"] });
 
 export const metadata: Metadata = {
   title: 'Plant Garden',

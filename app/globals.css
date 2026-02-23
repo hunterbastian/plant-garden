@@ -4,31 +4,31 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.96 0.01 80);
-  --foreground: oklch(0.25 0.04 50);
-  --card: oklch(0.98 0.005 80);
-  --card-foreground: oklch(0.25 0.04 50);
-  --popover: oklch(0.98 0.005 80);
-  --popover-foreground: oklch(0.25 0.04 50);
-  --primary: oklch(0.45 0.12 145);
-  --primary-foreground: oklch(0.98 0.005 80);
-  --secondary: oklch(0.85 0.04 75);
-  --secondary-foreground: oklch(0.3 0.05 50);
-  --muted: oklch(0.92 0.02 75);
-  --muted-foreground: oklch(0.5 0.03 50);
-  --accent: oklch(0.55 0.1 145);
-  --accent-foreground: oklch(0.98 0.005 80);
+  --background: oklch(0.97 0.005 90);
+  --foreground: oklch(0.22 0.01 60);
+  --card: oklch(0.95 0.008 85);
+  --card-foreground: oklch(0.22 0.01 60);
+  --popover: oklch(0.95 0.008 85);
+  --popover-foreground: oklch(0.22 0.01 60);
+  --primary: oklch(0.35 0.02 60);
+  --primary-foreground: oklch(0.95 0.008 85);
+  --secondary: oklch(0.90 0.01 85);
+  --secondary-foreground: oklch(0.30 0.015 60);
+  --muted: oklch(0.92 0.008 85);
+  --muted-foreground: oklch(0.50 0.01 60);
+  --accent: oklch(0.58 0.06 155);
+  --accent-foreground: oklch(0.95 0.008 85);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.85 0.04 75);
-  --input: oklch(0.88 0.03 75);
-  --ring: oklch(0.55 0.1 145);
+  --border: oklch(0.87 0.01 80);
+  --input: oklch(0.90 0.008 85);
+  --ring: oklch(0.50 0.01 60);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.75rem;
+  --radius: 0.25rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -76,6 +76,7 @@
 
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
+  --font-serif: 'Noto Serif JP', 'Georgia', serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -124,89 +125,74 @@
   }
 }
 
-/* Seed bag shake animation */
-@keyframes shake {
+/* Gentle tilt animation */
+@keyframes tilt {
   0%, 100% { transform: rotate(0deg); }
-  10% { transform: rotate(-12deg); }
-  20% { transform: rotate(10deg); }
-  30% { transform: rotate(-10deg); }
-  40% { transform: rotate(8deg); }
-  50% { transform: rotate(-6deg); }
-  60% { transform: rotate(4deg); }
-  70% { transform: rotate(-2deg); }
-  80% { transform: rotate(1deg); }
+  15% { transform: rotate(-8deg); }
+  30% { transform: rotate(6deg); }
+  45% { transform: rotate(-5deg); }
+  60% { transform: rotate(3deg); }
+  75% { transform: rotate(-1deg); }
   90% { transform: rotate(0deg); }
 }
 
-.animate-shake {
-  animation: shake 0.6s ease-in-out;
+.animate-tilt {
+  animation: tilt 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-/* Seed falling animations */
-@keyframes seed-fall-1 {
-  0% { transform: translate(0, 0); opacity: 1; }
-  100% { transform: translate(-8px, 60px); opacity: 0; }
+/* Seed drop */
+@keyframes seed-drop-1 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-6px, 80px) rotate(45deg); opacity: 0; }
+}
+@keyframes seed-drop-2 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(4px, 75px) rotate(-30deg); opacity: 0; }
+}
+@keyframes seed-drop-3 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-1px, 85px) rotate(20deg); opacity: 0; }
 }
 
-@keyframes seed-fall-2 {
-  0% { transform: translate(0, 0); opacity: 1; }
-  100% { transform: translate(6px, 55px); opacity: 0; }
-}
+.animate-seed-drop-1 { animation: seed-drop-1 0.8s ease-in forwards; }
+.animate-seed-drop-2 { animation: seed-drop-2 0.7s ease-in 0.08s forwards; }
+.animate-seed-drop-3 { animation: seed-drop-3 0.75s ease-in 0.04s forwards; }
 
-@keyframes seed-fall-3 {
-  0% { transform: translate(0, 0); opacity: 1; }
-  100% { transform: translate(-2px, 65px); opacity: 0; }
-}
-
-.animate-seed-fall-1 {
-  animation: seed-fall-1 0.6s ease-in forwards;
-}
-
-.animate-seed-fall-2 {
-  animation: seed-fall-2 0.5s ease-in 0.1s forwards;
-}
-
-.animate-seed-fall-3 {
-  animation: seed-fall-3 0.55s ease-in 0.05s forwards;
-}
-
-/* Plant appear */
-@keyframes plant-appear {
-  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
-  100% { opacity: 1; transform: translateX(-50%) scale(1); }
-}
-
-.animate-plant-appear {
-  animation: plant-appear 0.4s ease-out forwards;
-}
-
-/* Plant grow up */
-@keyframes grow-up {
+/* Grow from ground */
+@keyframes emerge {
   0% { transform: scaleY(0); opacity: 0; }
+  60% { transform: scaleY(1.05); opacity: 1; }
   100% { transform: scaleY(1); opacity: 1; }
 }
-
-.animate-grow-up {
-  animation: grow-up 0.8s ease-out forwards;
+.animate-emerge {
+  animation: emerge 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: bottom center;
 }
 
-/* Fade in */
-@keyframes fade-in {
+/* Gentle appear */
+@keyframes appear {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.animate-appear {
+  animation: appear 0.6s ease-out forwards;
+}
+
+/* Bloom unfold */
+@keyframes unfold {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  70% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-unfold {
+  animation: unfold 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Subtle fade */
+@keyframes soft-fade {
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
-
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out forwards;
-}
-
-/* Bloom animation */
-@keyframes bloom {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-bloom {
-  animation: bloom 0.6s ease-out forwards;
+.animate-soft-fade {
+  animation: soft-fade 0.6s ease-out forwards;
 }

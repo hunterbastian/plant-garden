@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 
 interface SeedBagProps {
   onShake: (bagCenterX: number) => void
@@ -11,8 +11,11 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [rotation, setRotation] = useState(0)
+  const [squish, setSquish] = useState({ x: 1, y: 1 })
   const [showSeeds, setShowSeeds] = useState(false)
+  const [justDropped, setJustDropped] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
+  const [innerSeedOffset, setInnerSeedOffset] = useState(0)
 
   const bagRef = useRef<HTMLDivElement>(null)
   const startPosRef = useRef({ x: 0, y: 0 })
@@ -22,12 +25,61 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
   const dirCountRef = useRef(0)
   const velocityRef = useRef<number[]>([])
   const lastShakeRef = useRef(0)
+  const animFrameRef = useRef<number>(0)
+
+  // Smooth spring-back when not dragging
+  useEffect(() => {
+    if (!isDragging && (pos.x !== 0 || pos.y !== 0)) {
+      // Animate spring-back
+      const startX = pos.x
+      const startY = pos.y
+      const startTime = performance.now()
+      const duration = 600
+
+      const spring = (t: number) => {
+        // Damped spring curve
+        const decay = Math.exp(-4 * t)
+        const oscillation = Math.cos(t * 8)
+        return decay * oscillation
+      }
+
+      const animate = (now: number) => {
+        const elapsed = now - startTime
+        const t = Math.min(elapsed / duration, 1)
+        const eased = 1 - spring(1 - t)
+        const curvedT = Math.min(eased, 1)
+
+        setPos({
+          x: startX * (1 - curvedT),
+          y: startY * (1 - curvedT),
+        })
+
+        if (t < 1) {
+          animFrameRef.current = requestAnimationFrame(animate)
+        } else {
+          setPos({ x: 0, y: 0 })
+        }
+      }
+
+      animFrameRef.current = requestAnimationFrame(animate)
+      return () => cancelAnimationFrame(animFrameRef.current)
+    }
+  }, [isDragging])
 
   const dropSeeds = useCallback(
     (screenX: number) => {
       setShowSeeds(true)
+      setJustDropped(true)
+
+      // Bounce squish on drop
+      setSquish({ x: 1.15, y: 0.85 })
+      setTimeout(() => setSquish({ x: 0.92, y: 1.1 }), 120)
+      setTimeout(() => setSquish({ x: 1.04, y: 0.96 }), 240)
+      setTimeout(() => setSquish({ x: 1, y: 1 }), 360)
+
       onShake(screenX)
-      setTimeout(() => setShowSeeds(false), 800)
+      setTimeout(() => setShowSeeds(false), 900)
+      setTimeout(() => setJustDropped(false), 500)
     },
     [onShake],
   )
@@ -35,6 +87,7 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault()
+      cancelAnimationFrame(animFrameRef.current)
       setIsDragging(true)
       setHasInteracted(true)
       startPosRef.current = { x: e.clientX, y: e.clientY }
@@ -43,6 +96,10 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
       lastDirRef.current = 0
       dirCountRef.current = 0
       velocityRef.current = []
+
+      // Pickup squish
+      setSquish({ x: 1.08, y: 0.93 })
+      setTimeout(() => setSquish({ x: 1, y: 1 }), 150)
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
     },
     [pos],
@@ -54,38 +111,42 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
 
       const dx = e.clientX - startPosRef.current.x
       const dy = e.clientY - startPosRef.current.y
-      const newX = startBagRef.current.x + dx
-      const newY = startBagRef.current.y + dy
+      let newX = startBagRef.current.x + dx
+      let newY = startBagRef.current.y + dy
 
-      // Clamp within container bounds
+      // Clamp within container
       if (containerRef.current && bagRef.current) {
         const cRect = containerRef.current.getBoundingClientRect()
         const bRect = bagRef.current.getBoundingClientRect()
         const bagW = bRect.width
         const bagH = bRect.height
-
-        // Calculate the bag's default center position (50% of container, top 12px)
         const defaultCenterX = cRect.width / 2
         const defaultTop = 12
+        const minX = -(defaultCenterX - bagW / 2 - 4)
+        const maxX = cRect.width - defaultCenterX - bagW / 2 + 4
+        const minY = -defaultTop + 4
+        const maxY = cRect.height - defaultTop - bagH - 4
 
-        // Limit so bag stays within container
-        const minX = -(defaultCenterX - bagW / 2)
-        const maxX = cRect.width - defaultCenterX - bagW / 2
-        const minY = -defaultTop
-        const maxY = cRect.height - defaultTop - bagH
-
-        setPos({
-          x: Math.max(minX, Math.min(maxX, newX)),
-          y: Math.max(minY, Math.min(maxY, newY)),
-        })
-      } else {
-        setPos({ x: newX, y: newY })
+        newX = Math.max(minX, Math.min(maxX, newX))
+        newY = Math.max(minY, Math.min(maxY, newY))
       }
 
-      // Tilt based on horizontal movement
+      setPos({ x: newX, y: newY })
+
+      // Calculate tilt with springy overshoot feel
       const moveDx = e.clientX - lastXRef.current
-      const tilt = Math.max(-25, Math.min(25, moveDx * 2))
-      setRotation(tilt)
+      const targetTilt = Math.max(-30, Math.min(30, moveDx * 2.5))
+      setRotation((prev) => prev + (targetTilt - prev) * 0.4)
+
+      // Move inner seeds to simulate weight shifting
+      setInnerSeedOffset(Math.max(-4, Math.min(4, moveDx * 0.8)))
+
+      // Squish on fast direction changes
+      const speed = Math.abs(moveDx)
+      if (speed > 6) {
+        setSquish({ x: 0.94, y: 1.06 })
+        setTimeout(() => setSquish({ x: 1, y: 1 }), 100)
+      }
 
       // Direction change tracking
       const dir = moveDx > 1 ? 1 : moveDx < -1 ? -1 : 0
@@ -111,7 +172,6 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
         lastShakeRef.current = now
         dirCountRef.current = 0
 
-        // Pass the bag's screen-space center X so garden-box can convert to %
         if (bagRef.current) {
           const bagRect = bagRef.current.getBoundingClientRect()
           dropSeeds(bagRect.left + bagRect.width / 2)
@@ -126,6 +186,8 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
   const handlePointerUp = useCallback(() => {
     setIsDragging(false)
     setRotation(0)
+    setSquish({ x: 1, y: 1 })
+    setInnerSeedOffset(0)
     velocityRef.current = []
     dirCountRef.current = 0
   }, [])
@@ -141,17 +203,16 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
       style={{
         top: 12,
         left: "50%",
-        transform: `translate(calc(-50% + ${pos.x}px), ${pos.y}px) rotate(${rotation}deg)`,
-        transition: isDragging
-          ? "none"
-          : "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
+        transform: `translate(calc(-50% + ${pos.x}px), ${pos.y}px) rotate(${rotation}deg) scaleX(${squish.x}) scaleY(${squish.y})`,
+        transition: isDragging ? "none" : "transform 0.08s ease-out",
         cursor: isDragging ? "grabbing" : "grab",
+        filter: justDropped ? "brightness(1.05)" : "none",
       }}
       role="button"
       aria-label="Grab and shake the seed bag to plant seeds"
       tabIndex={0}
     >
-      {/* Minimal ink-wash style bag */}
+      {/* Ink-wash bag */}
       <svg width="64" height="80" viewBox="0 0 64 80" fill="none">
         {/* Bag body */}
         <path
@@ -177,7 +238,7 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
           strokeWidth="0.8"
           strokeLinecap="round"
         />
-        {/* Simple kanji-like mark */}
+        {/* Kanji-like mark */}
         <line
           x1="32" y1="38" x2="32" y2="56"
           stroke="#3d3832" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"
@@ -190,13 +251,43 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
           x1="27" y1="50" x2="37" y2="50"
           stroke="#3d3832" strokeWidth="0.8" strokeLinecap="round" opacity="0.3"
         />
+
+        {/* Inner seeds that shift with movement */}
+        <circle
+          cx={28 + innerSeedOffset}
+          cy="64"
+          r="2.5"
+          fill="#3d3832"
+          opacity="0.15"
+        />
+        <circle
+          cx={34 + innerSeedOffset * 0.7}
+          cy="66"
+          r="2"
+          fill="#3d3832"
+          opacity="0.12"
+        />
+        <circle
+          cx={24 + innerSeedOffset * 1.2}
+          cy="68"
+          r="1.8"
+          fill="#3d3832"
+          opacity="0.1"
+        />
+        <circle
+          cx={38 + innerSeedOffset * 0.5}
+          cy="63"
+          r="2.2"
+          fill="#3d3832"
+          opacity="0.13"
+        />
       </svg>
 
-      {/* Falling seeds */}
+      {/* Falling seeds with staggered timing */}
       {showSeeds && (
         <div
-          className="absolute left-1/2 -translate-x-1/2"
-          style={{ bottom: -4 }}
+          className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{ bottom: -2 }}
         >
           <div
             className="animate-seed-drop-1 absolute rounded-full"
@@ -204,21 +295,19 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
           />
           <div
             className="animate-seed-drop-2 absolute rounded-full"
-            style={{
-              height: 4,
-              width: 4,
-              backgroundColor: "#5a5347",
-              marginLeft: 8,
-            }}
+            style={{ height: 4, width: 4, backgroundColor: "#5a5347", marginLeft: 10 }}
           />
           <div
             className="animate-seed-drop-3 absolute rounded-full"
-            style={{
-              height: 5,
-              width: 5,
-              backgroundColor: "#3d3832",
-              marginLeft: -8,
-            }}
+            style={{ height: 5, width: 5, backgroundColor: "#3d3832", marginLeft: -10 }}
+          />
+          <div
+            className="animate-seed-drop-4 absolute rounded-full"
+            style={{ height: 3, width: 3, backgroundColor: "#5a5347", marginLeft: 4 }}
+          />
+          <div
+            className="animate-seed-drop-5 absolute rounded-full"
+            style={{ height: 3, width: 3, backgroundColor: "#3d3832", marginLeft: -5 }}
           />
         </div>
       )}
@@ -226,7 +315,7 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
       {/* Hint */}
       {!hasInteracted && (
         <p
-          className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none"
+          className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none animate-soft-fade"
           style={{ bottom: -24, opacity: 0.5 }}
         >
           grab & shake

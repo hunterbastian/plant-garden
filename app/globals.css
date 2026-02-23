@@ -154,9 +154,21 @@
   100% { transform: translate(-1px, 85px) rotate(20deg); opacity: 0; }
 }
 
-.animate-seed-drop-1 { animation: seed-drop-1 0.8s ease-in forwards; }
-.animate-seed-drop-2 { animation: seed-drop-2 0.7s ease-in 0.08s forwards; }
-.animate-seed-drop-3 { animation: seed-drop-3 0.75s ease-in 0.04s forwards; }
+.animate-seed-drop-1 { animation: seed-drop-1 0.9s cubic-bezier(0.4, 0, 1, 1) forwards; }
+.animate-seed-drop-2 { animation: seed-drop-2 0.8s cubic-bezier(0.4, 0, 1, 1) 0.06s forwards; }
+.animate-seed-drop-3 { animation: seed-drop-3 0.85s cubic-bezier(0.4, 0, 1, 1) 0.03s forwards; }
+
+@keyframes seed-drop-4 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0.8; }
+  100% { transform: translate(8px, 70px) rotate(-40deg); opacity: 0; }
+}
+@keyframes seed-drop-5 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0.8; }
+  100% { transform: translate(-4px, 78px) rotate(25deg); opacity: 0; }
+}
+
+.animate-seed-drop-4 { animation: seed-drop-4 0.75s cubic-bezier(0.4, 0, 1, 1) 0.12s forwards; }
+.animate-seed-drop-5 { animation: seed-drop-5 0.82s cubic-bezier(0.4, 0, 1, 1) 0.09s forwards; }
 
 /* Grow from ground */
 @keyframes emerge {

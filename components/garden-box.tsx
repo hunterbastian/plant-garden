@@ -234,7 +234,7 @@ export function GardenBox() {
   }, [updateGlow])
 
   return (
-    <div className="flex flex-col items-center gap-6 md:gap-10 w-full max-w-md mx-auto">
+    <div className="flex flex-col items-center gap-6 md:gap-10 w-full max-w-lg mx-auto">
       <div className="text-center">
         <h1 className="text-xl font-light tracking-[0.2em] text-foreground font-serif" style={{ letterSpacing: "0.2em" }}>
           {"plant-garden"}
@@ -247,7 +247,7 @@ export function GardenBox() {
         className="relative w-full overflow-hidden"
         style={{ border: "1px solid #d6cfc4", borderRadius: 2, backgroundColor: "#f5f2ed", touchAction: "none", userSelect: "none" }}
       >
-        <div className="relative" style={{ height: "clamp(280px, 60vw, 400px)" }}>
+        <div className="relative" style={{ height: "clamp(320px, 65vw, 460px)" }}>
           <SeedShop
             coins={coins} coinPop={coinPop} selectedSeed={selectedSeed}
             onSelectSeed={setSelectedSeed} onBuySeed={handleBuySeed} inventory={inventory}

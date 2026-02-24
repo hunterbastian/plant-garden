@@ -88,12 +88,10 @@ export function SeedShop({ coins, coinPop, selectedSeed, onSelectSeed, onBuySeed
         }}
         aria-label={isOpen ? "Close seed shop" : "Open seed shop"}
       >
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <line x1="4" y1="8" x2="24" y2="8" stroke="#3d3832" strokeWidth="1.5" strokeLinecap="round" opacity={isOpen ? 0.8 : 0.35} />
-          <line x1="6" y1="5" x2="22" y2="5" stroke="#3d3832" strokeWidth="1" strokeLinecap="round" opacity={isOpen ? 0.6 : 0.25} />
-          <line x1="8" y1="8" x2="7" y2="24" stroke="#3d3832" strokeWidth="1.3" strokeLinecap="round" opacity={isOpen ? 0.8 : 0.35} />
-          <line x1="20" y1="8" x2="21" y2="24" stroke="#3d3832" strokeWidth="1.3" strokeLinecap="round" opacity={isOpen ? 0.8 : 0.35} />
-          <line x1="7" y1="14" x2="21" y2="14" stroke="#3d3832" strokeWidth="0.8" strokeLinecap="round" opacity={isOpen ? 0.5 : 0.2} />
+        <svg width="22" height="18" viewBox="0 0 22 18" fill="none" style={{ transition: "transform 0.3s ease", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>
+          <line x1="2" y1="3" x2="20" y2="3" stroke="#3d3832" strokeWidth="1.5" strokeLinecap="round" opacity={isOpen ? 0.7 : 0.4} />
+          <line x1="2" y1="9" x2="20" y2="9" stroke="#3d3832" strokeWidth="1.5" strokeLinecap="round" opacity={isOpen ? 0.7 : 0.4} />
+          <line x1="2" y1="15" x2="20" y2="15" stroke="#3d3832" strokeWidth="1.5" strokeLinecap="round" opacity={isOpen ? 0.7 : 0.4} />
         </svg>
       </button>
 

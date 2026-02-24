@@ -29,12 +29,23 @@ export function GardenBox() {
   })
   const gardenRef = useRef<HTMLDivElement>(null)
 
+  // Stable refs for callback values to avoid re-creating handlers
+  const selectedSeedRef = useRef(selectedSeed)
+  const inventoryRef = useRef(inventory)
+  const nextIdRef = useRef(nextId)
+  const seedsDroppedRef = useRef(seedsDropped)
+  selectedSeedRef.current = selectedSeed
+  inventoryRef.current = inventory
+  nextIdRef.current = nextId
+  seedsDroppedRef.current = seedsDropped
+
   const handleShake = useCallback(
     (bagCenterX: number) => {
       if (!gardenRef.current) return
+      const seed = selectedSeedRef.current
+      const inv = inventoryRef.current
 
-      // Check if we have seeds to plant
-      if (inventory[selectedSeed] <= 0 && selectedSeed !== "bamboo") return
+      if (inv[seed] <= 0 && seed !== "bamboo") return
 
       const rect = gardenRef.current.getBoundingClientRect()
       const relX = ((bagCenterX - rect.left) / rect.width) * 100
@@ -42,6 +53,7 @@ export function GardenBox() {
 
       const numSeeds = Math.floor(Math.random() * 2) + 1
       const newPlants: PlantData[] = []
+      const baseId = nextIdRef.current
 
       for (let i = 0; i < numSeeds; i++) {
         const spreadX = clampedX + (Math.random() - 0.5) * 10
@@ -49,10 +61,10 @@ export function GardenBox() {
         const stage = stages[Math.floor(Math.random() * stages.length)]
 
         newPlants.push({
-          id: nextId + i,
+          id: baseId + i,
           x: Math.max(5, Math.min(95, spreadX)),
           stage,
-          type: selectedSeed,
+          type: seed,
           delay: 300 + i * 400,
           watered: false,
         })
@@ -60,22 +72,20 @@ export function GardenBox() {
 
       setPlants((prev) => [...prev, ...newPlants])
       setNextId((prev) => prev + numSeeds)
-      setSeedsDropped((prev) => prev + numSeeds)
+      setSeedsDropped((prev) => {
+        const next = prev + numSeeds
+        if (next % 3 === 0) setCoins((c) => c + 1)
+        return next
+      })
 
-      // Use seeds from inventory (bamboo is unlimited)
-      if (selectedSeed !== "bamboo") {
+      if (seed !== "bamboo") {
         setInventory((prev) => ({
           ...prev,
-          [selectedSeed]: Math.max(0, prev[selectedSeed] - numSeeds),
+          [seed]: Math.max(0, prev[seed] - numSeeds),
         }))
       }
-
-      // Earn a coin for every 3 plants
-      if ((seedsDropped + numSeeds) % 3 === 0) {
-        setCoins((prev) => prev + 1)
-      }
     },
-    [nextId, selectedSeed, inventory, seedsDropped],
+    [], // stable -- reads from refs
   )
 
   const handleBuySeed = useCallback(
@@ -93,35 +103,36 @@ export function GardenBox() {
 
   const handleWater = useCallback(
     (canCenterX: number) => {
-      if (!gardenRef.current || plants.length === 0) return
+      if (!gardenRef.current) return
 
       const rect = gardenRef.current.getBoundingClientRect()
       const relX = ((canCenterX - rect.left) / rect.width) * 100
 
-      // Find the closest un-watered plant within range
-      let closestIdx = -1
-      let closestDist = 20 // max distance in % to water
+      setPlants((prev) => {
+        if (prev.length === 0) return prev
 
-      plants.forEach((plant, i) => {
-        if (plant.watered) return
-        const dist = Math.abs(plant.x - relX)
-        if (dist < closestDist) {
-          closestDist = dist
-          closestIdx = i
-        }
-      })
+        let closestIdx = -1
+        let closestDist = 20
 
-      if (closestIdx >= 0) {
-        setPlants((prev) =>
-          prev.map((p, i) =>
+        prev.forEach((plant, i) => {
+          if (plant.watered) return
+          const dist = Math.abs(plant.x - relX)
+          if (dist < closestDist) {
+            closestDist = dist
+            closestIdx = i
+          }
+        })
+
+        if (closestIdx >= 0) {
+          setCoins((c) => c + 1)
+          return prev.map((p, i) =>
             i === closestIdx ? { ...p, watered: true } : p,
-          ),
-        )
-        // Earn a coin for watering
-        setCoins((prev) => prev + 1)
-      }
+          )
+        }
+        return prev
+      })
     },
-    [plants],
+    [], // stable -- uses setPlants functional update
   )
 
   const handleClear = useCallback(() => {

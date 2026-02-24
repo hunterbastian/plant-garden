@@ -15,158 +15,199 @@ const MAX_WATER = 6
 
 export function WateringCan({ onWater, containerRef }: WateringCanProps) {
   const [isDragging, setIsDragging] = useState(false)
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-  const [tilt, setTilt] = useState(0)
   const [showDrops, setShowDrops] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
   const [waterLevel, setWaterLevel] = useState(MAX_WATER)
-
-  // Hold-to-pour state
   const [holdProgress, setHoldProgress] = useState(0)
-  const [isHolding, setIsHolding] = useState(false)
   const [isPouringAnim, setIsPouringAnim] = useState(false)
-
-  // Refill state
   const [isNearPond, setIsNearPond] = useState(false)
   const [refillProgress, setRefillProgress] = useState(0)
-  const [isRefilling, setIsRefilling] = useState(false)
   const [showRefillBubbles, setShowRefillBubbles] = useState(false)
 
   const canRef = useRef<HTMLDivElement>(null)
   const startPosRef = useRef({ x: 0, y: 0 })
   const startCanRef = useRef({ x: 0, y: 0 })
+  const posRef = useRef({ x: 0, y: 0 })
+  const tiltRef = useRef(0)
   const animFrameRef = useRef<number>(0)
-  const holdStartRef = useRef<number>(0)
   const holdRafRef = useRef<number>(0)
-  const refillStartRef = useRef<number>(0)
   const refillRafRef = useRef<number>(0)
+  const holdStartRef = useRef<number>(0)
+  const refillStartRef = useRef<number>(0)
   const hasMoveRef = useRef(false)
   const moveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isHoldingRef = useRef(false)
+  const isRefillingRef = useRef(false)
+  const rafPendingRef = useRef(false)
+  const waterLevelRef = useRef(MAX_WATER)
 
-  // Check if can is near the pond (bottom-right of container)
+  // Direct DOM transforms
+  const applyTransform = useCallback(() => {
+    if (!canRef.current) return
+    const { x, y } = posRef.current
+    const t = tiltRef.current
+    canRef.current.style.transform = `translate(${x}px, ${y}px) rotate(${t}deg)`
+  }, [])
+
   const checkNearPond = useCallback(() => {
     if (!containerRef.current || !canRef.current) return false
     const cRect = containerRef.current.getBoundingClientRect()
     const bRect = canRef.current.getBoundingClientRect()
-    const canCenterX = bRect.left + bRect.width / 2
-    const canCenterY = bRect.top + bRect.height / 2
-
-    // Pond is at bottom-right: roughly right 16px, bottom 24px, 64x36
-    const pondCenterX = cRect.right - 16 - 32
-    const pondCenterY = cRect.bottom - 37 - 24
-    const dx = canCenterX - pondCenterX
-    const dy = canCenterY - pondCenterY
-    const dist = Math.sqrt(dx * dx + dy * dy)
+    const cx = bRect.left + bRect.width / 2
+    const cy = bRect.top + bRect.height / 2
+    const px = cRect.right - 48
+    const py = cRect.bottom - 61
+    const dist = Math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
     return dist < 70
   }, [containerRef])
 
-  // Spring-back when released
-  useEffect(() => {
-    if (!isDragging && (pos.x !== 0 || pos.y !== 0)) {
-      const startX = pos.x
-      const startY = pos.y
-      const startTime = performance.now()
-      const duration = 500
+  // Spring-back
+  const springBack = useCallback(() => {
+    const sx = posRef.current.x
+    const sy = posRef.current.y
+    const st = tiltRef.current
+    const start = performance.now()
+    const dur = 500
 
-      const animate = (now: number) => {
-        const elapsed = now - startTime
-        const t = Math.min(elapsed / duration, 1)
-        const eased = 1 - Math.exp(-5 * t) * Math.cos(t * 6)
-        const curvedT = Math.min(eased, 1)
-
-        setPos({
-          x: startX * (1 - curvedT),
-          y: startY * (1 - curvedT),
-        })
-
-        if (t < 1) {
-          animFrameRef.current = requestAnimationFrame(animate)
-        } else {
-          setPos({ x: 0, y: 0 })
-        }
+    const animate = (now: number) => {
+      const t = Math.min((now - start) / dur, 1)
+      const s = 1 - (1 + 5 * t) * Math.exp(-5 * t)
+      posRef.current = { x: sx * (1 - s), y: sy * (1 - s) }
+      tiltRef.current = st * (1 - s)
+      applyTransform()
+      if (t < 1) {
+        animFrameRef.current = requestAnimationFrame(animate)
+      } else {
+        posRef.current = { x: 0, y: 0 }
+        tiltRef.current = 0
+        applyTransform()
       }
-
-      animFrameRef.current = requestAnimationFrame(animate)
-      return () => cancelAnimationFrame(animFrameRef.current)
     }
-  }, [isDragging])
+    animFrameRef.current = requestAnimationFrame(animate)
+  }, [applyTransform])
 
-  // Hold-progress loop (pour water)
-  useEffect(() => {
-    if (!isHolding || isNearPond) {
-      if (!isNearPond) setHoldProgress(0)
-      return
-    }
+  // Tilt pour animation
+  const tiltPour = useCallback(() => {
+    const start = performance.now()
+    const pourDur = 500
+    const returnDur = 400
+    const totalDur = pourDur + 600 + returnDur
 
-    holdStartRef.current = performance.now()
-
-    const tick = (now: number) => {
-      const elapsed = now - holdStartRef.current
-      const progress = Math.min(elapsed / HOLD_DURATION, 1)
-      setHoldProgress(progress)
-
-      if (progress >= 1) {
-        triggerPour()
-        setIsHolding(false)
-        return
+    const animate = (now: number) => {
+      const elapsed = now - start
+      if (elapsed < pourDur) {
+        const t = elapsed / pourDur
+        const eased = 1 - Math.pow(1 - t, 3)
+        tiltRef.current = -35 * eased
+      } else if (elapsed < pourDur + 600) {
+        tiltRef.current = -35
+      } else {
+        const t = (elapsed - pourDur - 600) / returnDur
+        const eased = 1 - Math.pow(1 - Math.min(t, 1), 3)
+        tiltRef.current = -35 * (1 - eased)
       }
-
-      holdRafRef.current = requestAnimationFrame(tick)
-    }
-
-    holdRafRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(holdRafRef.current)
-  }, [isHolding, isNearPond])
-
-  // Refill-progress loop (near pond)
-  useEffect(() => {
-    if (!isRefilling) {
-      setRefillProgress(0)
-      return
-    }
-
-    refillStartRef.current = performance.now()
-
-    const tick = (now: number) => {
-      const elapsed = now - refillStartRef.current
-      const progress = Math.min(elapsed / REFILL_DURATION, 1)
-      setRefillProgress(progress)
-
-      if (progress >= 1) {
-        // Refill complete
-        setWaterLevel(MAX_WATER)
-        setIsRefilling(false)
-        setShowRefillBubbles(true)
-        setTimeout(() => setShowRefillBubbles(false), 800)
-        return
+      applyTransform()
+      if (elapsed < totalDur) {
+        animFrameRef.current = requestAnimationFrame(animate)
+      } else {
+        tiltRef.current = 0
+        applyTransform()
+        setIsPouringAnim(false)
       }
-
-      refillRafRef.current = requestAnimationFrame(tick)
     }
-
-    refillRafRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(refillRafRef.current)
-  }, [isRefilling])
+    animFrameRef.current = requestAnimationFrame(animate)
+  }, [applyTransform])
 
   const triggerPour = useCallback(() => {
-    if (waterLevel <= 0) return
-
+    if (waterLevelRef.current <= 0) return
     setIsPouringAnim(true)
-    setTilt(-35)
+    tiltPour()
     setTimeout(() => {
       setShowDrops(true)
-      setWaterLevel((prev) => Math.max(0, prev - 1))
+      waterLevelRef.current = Math.max(0, waterLevelRef.current - 1)
+      setWaterLevel(waterLevelRef.current)
       if (canRef.current) {
         const rect = canRef.current.getBoundingClientRect()
         onWater(rect.left + rect.width * 0.25)
       }
-    }, 300)
-    setTimeout(() => setShowDrops(false), 1100)
-    setTimeout(() => {
-      setTilt(0)
-      setIsPouringAnim(false)
-    }, 1200)
-  }, [onWater, waterLevel])
+    }, 400)
+    setTimeout(() => setShowDrops(false), 1200)
+  }, [onWater, tiltPour])
+
+  // Hold-to-pour rAF loop
+  useEffect(() => {
+    if (!isHoldingRef.current || isNearPond) {
+      cancelAnimationFrame(holdRafRef.current)
+      return
+    }
+
+    holdStartRef.current = performance.now()
+    const tick = (now: number) => {
+      if (!isHoldingRef.current) return
+      const p = Math.min((now - holdStartRef.current) / HOLD_DURATION, 1)
+      setHoldProgress(p)
+      if (p >= 1) {
+        isHoldingRef.current = false
+        setHoldProgress(0)
+        triggerPour()
+        return
+      }
+      holdRafRef.current = requestAnimationFrame(tick)
+    }
+    holdRafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(holdRafRef.current)
+  }, [isHoldingRef.current, isNearPond, triggerPour])
+
+  // Refill rAF loop
+  useEffect(() => {
+    if (!isRefillingRef.current) {
+      cancelAnimationFrame(refillRafRef.current)
+      return
+    }
+
+    refillStartRef.current = performance.now()
+    const tick = (now: number) => {
+      if (!isRefillingRef.current) return
+      const p = Math.min((now - refillStartRef.current) / REFILL_DURATION, 1)
+      setRefillProgress(p)
+      if (p >= 1) {
+        isRefillingRef.current = false
+        waterLevelRef.current = MAX_WATER
+        setWaterLevel(MAX_WATER)
+        setRefillProgress(0)
+        setShowRefillBubbles(true)
+        setTimeout(() => setShowRefillBubbles(false), 800)
+        return
+      }
+      refillRafRef.current = requestAnimationFrame(tick)
+    }
+    refillRafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(refillRafRef.current)
+  }, [isRefillingRef.current])
+
+  const startHoldOrRefill = useCallback(() => {
+    const near = checkNearPond()
+    setIsNearPond(near)
+    if (near && waterLevelRef.current < MAX_WATER) {
+      isRefillingRef.current = true
+      isHoldingRef.current = false
+      setRefillProgress(0.001) // trigger effect
+    } else if (!near) {
+      isHoldingRef.current = true
+      isRefillingRef.current = false
+      setHoldProgress(0.001)
+    }
+  }, [checkNearPond])
+
+  const stopHoldAndRefill = useCallback(() => {
+    isHoldingRef.current = false
+    isRefillingRef.current = false
+    setHoldProgress(0)
+    setRefillProgress(0)
+    setIsNearPond(false)
+    cancelAnimationFrame(holdRafRef.current)
+    cancelAnimationFrame(refillRafRef.current)
+  }, [])
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -174,30 +215,16 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       e.preventDefault()
       e.stopPropagation()
       cancelAnimationFrame(animFrameRef.current)
-      cancelAnimationFrame(holdRafRef.current)
-      cancelAnimationFrame(refillRafRef.current)
-
+      stopHoldAndRefill()
       setIsDragging(true)
       setHasInteracted(true)
       hasMoveRef.current = false
       startPosRef.current = { x: e.clientX, y: e.clientY }
-      startCanRef.current = { ...pos }
-
-      // Check pond proximity immediately
-      const nearPond = checkNearPond()
-      setIsNearPond(nearPond)
-
-      if (nearPond && waterLevel < MAX_WATER) {
-        setIsRefilling(true)
-        setIsHolding(false)
-      } else if (!nearPond) {
-        setIsHolding(true)
-        setIsRefilling(false)
-      }
-
+      startCanRef.current = { ...posRef.current }
+      startHoldOrRefill()
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
     },
-    [pos, isPouringAnim, checkNearPond, waterLevel],
+    [isPouringAnim, stopHoldAndRefill, startHoldOrRefill],
   )
 
   const handlePointerMove = useCallback(
@@ -210,9 +237,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
 
       if (totalMove > 6) {
         hasMoveRef.current = true
-        if (isHolding) setIsHolding(false)
-        if (isRefilling) setIsRefilling(false)
-        setIsNearPond(false)
+        stopHoldAndRefill()
       }
 
       let newX = startCanRef.current.x + dx
@@ -233,48 +258,47 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         newY = Math.max(minY, Math.min(maxY, newY))
       }
 
-      setPos({ x: newX, y: newY })
+      posRef.current = { x: newX, y: newY }
 
-      // Clear existing pause timer
-      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
+      if (!rafPendingRef.current) {
+        rafPendingRef.current = true
+        requestAnimationFrame(() => {
+          applyTransform()
+          rafPendingRef.current = false
+        })
+      }
 
       // Restart hold/refill after pause
-      if (isDragging && !isPouringAnim && hasMoveRef.current) {
+      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
+      if (hasMoveRef.current) {
         moveTimeoutRef.current = setTimeout(() => {
           if (!isDragging || isPouringAnim) return
-          const nearPond = checkNearPond()
-          setIsNearPond(nearPond)
-          if (nearPond && waterLevel < MAX_WATER) {
-            setIsRefilling(true)
-            setIsHolding(false)
-          } else if (!nearPond) {
-            setIsHolding(true)
-            setIsRefilling(false)
-          }
+          startHoldOrRefill()
         }, 200)
       }
     },
-    [isDragging, isPouringAnim, isHolding, isRefilling, containerRef, checkNearPond, waterLevel],
+    [isDragging, isPouringAnim, containerRef, applyTransform, stopHoldAndRefill, startHoldOrRefill],
   )
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false)
-    setIsHolding(false)
-    setIsRefilling(false)
-    setIsNearPond(false)
-    setHoldProgress(0)
-    setRefillProgress(0)
-    cancelAnimationFrame(holdRafRef.current)
-    cancelAnimationFrame(refillRafRef.current)
+    stopHoldAndRefill()
     if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
-    if (!isPouringAnim) setTilt(0)
-  }, [isPouringAnim])
+    if (!isPouringAnim) springBack()
+  }, [isPouringAnim, stopHoldAndRefill, springBack])
+
+  useEffect(() => {
+    return () => {
+      cancelAnimationFrame(animFrameRef.current)
+      cancelAnimationFrame(holdRafRef.current)
+      cancelAnimationFrame(refillRafRef.current)
+      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
+    }
+  }, [])
 
   const waterDots = Array.from({ length: MAX_WATER }, (_, i) => i < waterLevel)
-
-  // Which ring to show
   const showPourRing = isDragging && holdProgress > 0 && holdProgress < 1 && !isPouringAnim && !isNearPond
-  const showRefillRing = isDragging && isRefilling && refillProgress > 0 && refillProgress < 1
+  const showRefillRing = isDragging && refillProgress > 0 && refillProgress < 1
 
   return (
     <div
@@ -288,35 +312,30 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         top: 16,
         right: 16,
         padding: 8,
-        transform: `translate(${pos.x}px, ${pos.y}px) rotate(${tilt}deg)`,
-        transition: isPouringAnim
-          ? "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)"
-          : isDragging
-            ? "none"
-            : "transform 0.15s ease-out",
+        willChange: "transform",
         cursor: isPouringAnim ? "default" : isDragging ? "grabbing" : "grab",
         transformOrigin: "70% 40%",
       }}
       role="button"
-      aria-label="Hold the watering can to water plants, or hold it near the pond to refill"
+      aria-label="Hold the watering can to water plants, or hold near the pond to refill"
       tabIndex={0}
     >
       {/* Pour progress ring */}
       {showPourRing && (
         <svg
           className="absolute pointer-events-none"
-          style={{ top: -8, right: -8, width: 36, height: 36 }}
-          viewBox="0 0 36 36"
+          style={{ top: -10, right: -10, width: 38, height: 38, opacity: 0.5 + holdProgress * 0.5 }}
+          viewBox="0 0 38 38"
         >
-          <circle cx="18" cy="18" r={CIRCLE_R} fill="none" stroke="#d6cfc4" strokeWidth="2" opacity="0.4" />
+          <circle cx="19" cy="19" r={CIRCLE_R} fill="none" stroke="#d6cfc4" strokeWidth="1.5" opacity="0.5" />
           <circle
-            cx="18" cy="18" r={CIRCLE_R}
-            fill="none" stroke="#8aacbc" strokeWidth="2.5" strokeLinecap="round"
+            cx="19" cy="19" r={CIRCLE_R}
+            fill="none" stroke="#8aacbc" strokeWidth="2" strokeLinecap="round"
             strokeDasharray={CIRCLE_C}
             strokeDashoffset={CIRCLE_C * (1 - holdProgress)}
-            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 0.05s linear" }}
+            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
           />
-          <path d="M18 12 Q18 18 14 20 Q16 24 18 24 Q20 24 22 20 Q18 18 18 12Z" fill="#8aacbc" opacity={0.3 + holdProgress * 0.5} />
+          <path d="M19 13 Q19 19 15 21 Q17 25 19 25 Q21 25 23 21 Q19 19 19 13Z" fill="#8aacbc" opacity={0.2 + holdProgress * 0.4} />
         </svg>
       )}
 
@@ -324,19 +343,18 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       {showRefillRing && (
         <svg
           className="absolute pointer-events-none"
-          style={{ top: -8, right: -8, width: 36, height: 36 }}
-          viewBox="0 0 36 36"
+          style={{ top: -10, right: -10, width: 38, height: 38, opacity: 0.5 + refillProgress * 0.5 }}
+          viewBox="0 0 38 38"
         >
-          <circle cx="18" cy="18" r={CIRCLE_R} fill="none" stroke="#d6cfc4" strokeWidth="2" opacity="0.4" />
+          <circle cx="19" cy="19" r={CIRCLE_R} fill="none" stroke="#d6cfc4" strokeWidth="1.5" opacity="0.5" />
           <circle
-            cx="18" cy="18" r={CIRCLE_R}
-            fill="none" stroke="#7aab8e" strokeWidth="2.5" strokeLinecap="round"
+            cx="19" cy="19" r={CIRCLE_R}
+            fill="none" stroke="#7aab8e" strokeWidth="2" strokeLinecap="round"
             strokeDasharray={CIRCLE_C}
             strokeDashoffset={CIRCLE_C * (1 - refillProgress)}
-            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 0.05s linear" }}
+            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
           />
-          {/* Up arrow / fill icon */}
-          <path d="M18 24 L18 13 M14 17 L18 13 L22 17" stroke="#7aab8e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.4 + refillProgress * 0.5} />
+          <path d="M19 25 L19 14 M15 18 L19 14 L23 18" stroke="#7aab8e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.3 + refillProgress * 0.5} />
         </svg>
       )}
 
@@ -361,10 +379,12 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         </div>
       )}
 
-      {/* Ink-wash watering can SVG */}
+      {/* Ink-wash watering can */}
       <svg width="56" height="52" viewBox="0 0 56 52" fill="none">
         <path d="M18 16 L16 44 Q16 48 20 48 L42 48 Q46 48 46 44 L44 16 Z" fill="#e8e2d8" stroke="#3d3832" strokeWidth="1" strokeLinejoin="round" />
-        <path d={`M17 ${48 - waterLevel * 4} L17 44 Q17 47 21 47 L41 47 Q45 47 45 44 L45 ${48 - waterLevel * 4} Z`} fill="#b8c8d0" opacity="0.3" />
+        <path d={`M17 ${48 - waterLevel * 4} L17 44 Q17 47 21 47 L41 47 Q45 47 45 44 L45 ${48 - waterLevel * 4} Z`} fill="#b8c8d0" opacity="0.3">
+          <animate attributeName="opacity" values="0.3;0.35;0.3" dur="3s" repeatCount="indefinite" />
+        </path>
         <path d="M16 16 Q16 14 18 14 L44 14 Q46 14 46 16" fill="none" stroke="#3d3832" strokeWidth="1" strokeLinecap="round" />
         <path d="M44 18 Q52 16 50 26 Q48 34 44 34" fill="none" stroke="#3d3832" strokeWidth="1.2" strokeLinecap="round" />
         <path d="M18 18 L6 8 Q4 6 4 8 L4 12 Q4 14 6 14 L16 20" fill="none" stroke="#3d3832" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
@@ -373,7 +393,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         <line x1="24" y1="28" x2="38" y2="28" stroke="#3d3832" strokeWidth="0.6" strokeLinecap="round" opacity="0.15" />
       </svg>
 
-      {/* Water drops when pouring */}
+      {/* Water drops */}
       {showDrops && (
         <div className="absolute pointer-events-none" style={{ top: 8, left: 0 }}>
           <div className="animate-water-drop-1 absolute rounded-full" style={{ height: 4, width: 3, backgroundColor: "#8aacbc", opacity: 0.7 }} />
@@ -383,13 +403,20 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         </div>
       )}
 
-      {/* Water level dots */}
+      {/* Water level dots with animated transitions */}
       <div className="absolute flex gap-0.5" style={{ bottom: 2, left: "50%", transform: "translateX(-50%)" }}>
         {waterDots.map((filled, i) => (
           <div
             key={i}
-            className="rounded-full transition-all duration-500"
-            style={{ width: 3, height: 3, backgroundColor: filled ? "#8aacbc" : "#d6cfc4", opacity: filled ? 0.7 : 0.3 }}
+            className="rounded-full"
+            style={{
+              width: 3,
+              height: 3,
+              backgroundColor: filled ? "#8aacbc" : "#d6cfc4",
+              opacity: filled ? 0.7 : 0.3,
+              transition: `all 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.05}s`,
+              transform: filled ? "scale(1)" : "scale(0.7)",
+            }}
           />
         ))}
       </div>

@@ -15,10 +15,10 @@ interface PlantProps {
 }
 
 const COLORS: Record<PlantType, { stem: string; leaf: string; accent: string }> = {
-  bamboo:  { stem: "#6b7a5e", leaf: "#7d8e6e", accent: "#7d8e6e" },
-  bonsai:  { stem: "#5a4e42", leaf: "#6b7a5e", accent: "#8a7b6b" },
-  moss:    { stem: "#6b7a5e", leaf: "#8a9e7a", accent: "#8a9e7a" },
-  orchid:  { stem: "#6b7a5e", leaf: "#7d8e6e", accent: "#b8a0a0" },
+  bamboo: { stem: "#5c7a4a", leaf: "#6b8e5a", accent: "#7d9e6e" },
+  bonsai: { stem: "#5a4e42", leaf: "#6b7a5e", accent: "#8a7b6b" },
+  moss:   { stem: "#6b7a5e", leaf: "#8a9e7a", accent: "#8a9e7a" },
+  orchid: { stem: "#6b7a5e", leaf: "#7d8e6e", accent: "#b8a0a0" },
 }
 
 const MAX_BAMBOO_SEGMENTS = 5
@@ -49,7 +49,6 @@ export const Plant = memo(function Plant({ x, stage, type, delay, watered, glowi
     return () => { timersRef.current.forEach(clearTimeout); timersRef.current = [] }
   }, [visible, stage])
 
-  // Bamboo keeps growing after blooming -- adds segments over time
   useEffect(() => {
     if (type !== "bamboo" || currentStage !== "blooming") return
     if (bambooIntervalRef.current) clearInterval(bambooIntervalRef.current)
@@ -74,35 +73,208 @@ export const Plant = memo(function Plant({ x, stage, type, delay, watered, glowi
   if (!visible) return null
 
   const isBambooGrown = type === "bamboo" && currentStage === "blooming"
-  const extraH = isBambooGrown ? bambooSegments * 18 : 0
+  const segH = 20
+  const extraH = isBambooGrown ? bambooSegments * segH : 0
   const svgH = 56 + extraH
-  const stemTop = isBambooGrown ? Math.max(18 - bambooSegments * 18, 2) : 18
 
-  // Render bamboo segments
-  const renderBambooSegments = () => {
-    if (!isBambooGrown || bambooSegments === 0) return null
-    const segs = []
-    for (let s = 0; s < bambooSegments; s++) {
-      const yBase = 18 - s * 18
-      const yTop = yBase - 14
-      const nodeY = yBase - 2
-      segs.push(
-        <g key={s} className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
-          <line x1="18" y1={yBase} x2="18" y2={Math.max(yTop, 2)} stroke={c.stem} strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="16" y1={nodeY} x2="20" y2={nodeY} stroke={c.stem} strokeWidth="2" strokeLinecap="round" opacity="0.6" />
-          <path d={`M18 ${yTop + 4} Q${12 - s} ${yTop} ${8 - s} ${yTop + 3}`} fill="none" stroke={c.leaf} strokeWidth="0.9" strokeLinecap="round" />
-          <path d={`M18 ${yTop + 4} Q${24 + s} ${yTop} ${28 + s} ${yTop + 3}`} fill="none" stroke={c.leaf} strokeWidth="0.9" strokeLinecap="round" />
-          {s > 0 && (
-            <>
-              <path d={`M18 ${yTop + 8} Q${14 - s * 0.5} ${yTop + 5} ${11 - s * 0.5} ${yTop + 7}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" opacity="0.7" />
-              <path d={`M18 ${yTop + 8} Q${22 + s * 0.5} ${yTop + 5} ${25 + s * 0.5} ${yTop + 7}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" opacity="0.7" />
-            </>
+  // --- Bamboo culm renderer ---
+  // Each culm segment: tapered rect (wider at base, thinner at top), node ring, leaf cluster
+  const renderBambooCulm = () => {
+    // Total segments: 3 base + growing segments
+    const totalSegs = 3 + bambooSegments
+    const baseY = svgH // ground
+    const baseWidth = 4
+    const taperRate = 0.35 // width decrease per segment
+
+    const elements = []
+
+    for (let i = 0; i < totalSegs; i++) {
+      const yBottom = baseY - i * segH
+      const yTop = yBottom - segH
+      const wBottom = Math.max(baseWidth - i * taperRate, 1.4)
+      const wTop = Math.max(baseWidth - (i + 1) * taperRate, 1.2)
+      const cx = 18
+      const isGrowth = i >= 3
+
+      elements.push(
+        <g key={`seg-${i}`} className={isGrowth ? "animate-emerge" : ""} style={isGrowth ? { transformOrigin: `18px ${svgH}px` } : undefined}>
+          {/* Culm segment -- tapered shape */}
+          <path
+            d={`M${cx - wBottom / 2} ${yBottom} L${cx - wTop / 2} ${yTop} L${cx + wTop / 2} ${yTop} L${cx + wBottom / 2} ${yBottom} Z`}
+            fill={c.stem}
+            opacity={0.7 - i * 0.025}
+          />
+          {/* Inner highlight -- gives hollow bamboo tube feel */}
+          <path
+            d={`M${cx - wBottom / 2 + 0.6} ${yBottom - 1} L${cx - wTop / 2 + 0.5} ${yTop + 1} L${cx + wTop / 2 - 0.5} ${yTop + 1} L${cx + wBottom / 2 - 0.6} ${yBottom - 1} Z`}
+            fill={c.accent}
+            opacity={0.15}
+          />
+          {/* Node ring -- characteristic bamboo joint */}
+          {i > 0 && (
+            <ellipse
+              cx={cx}
+              cy={yBottom}
+              rx={wBottom / 2 + 1.2}
+              ry={1}
+              fill="none"
+              stroke={c.stem}
+              strokeWidth="1.2"
+              opacity={0.5}
+            />
+          )}
+          {/* Leaf clusters -- drooping from nodes, alternating sides */}
+          {i > 0 && i % 1 === 0 && (
+            <g opacity={Math.max(0.8 - i * 0.04, 0.4)}>
+              {i % 2 === 0 ? (
+                // Left side leaves
+                <>
+                  <path
+                    d={`M${cx - wBottom / 2 - 0.5} ${yBottom - 1} Q${cx - 10 - i * 0.5} ${yBottom - 6} ${cx - 12 - i * 0.3} ${yBottom - 2}`}
+                    fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round"
+                  />
+                  <path
+                    d={`M${cx - wBottom / 2 - 0.5} ${yBottom - 1} Q${cx - 8 - i * 0.4} ${yBottom - 8} ${cx - 14 - i * 0.2} ${yBottom - 5}`}
+                    fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round"
+                  />
+                  <path
+                    d={`M${cx - wBottom / 2 - 0.5} ${yBottom - 1} Q${cx - 7} ${yBottom - 4} ${cx - 10} ${yBottom + 1}`}
+                    fill="none" stroke={c.leaf} strokeWidth="0.6" strokeLinecap="round" opacity="0.7"
+                  />
+                </>
+              ) : (
+                // Right side leaves
+                <>
+                  <path
+                    d={`M${cx + wBottom / 2 + 0.5} ${yBottom - 1} Q${cx + 10 + i * 0.5} ${yBottom - 6} ${cx + 12 + i * 0.3} ${yBottom - 2}`}
+                    fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round"
+                  />
+                  <path
+                    d={`M${cx + wBottom / 2 + 0.5} ${yBottom - 1} Q${cx + 8 + i * 0.4} ${yBottom - 8} ${cx + 14 + i * 0.2} ${yBottom - 5}`}
+                    fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round"
+                  />
+                  <path
+                    d={`M${cx + wBottom / 2 + 0.5} ${yBottom - 1} Q${cx + 7} ${yBottom - 4} ${cx + 10} ${yBottom + 1}`}
+                    fill="none" stroke={c.leaf} strokeWidth="0.6" strokeLinecap="round" opacity="0.7"
+                  />
+                </>
+              )}
+            </g>
           )}
         </g>
       )
     }
-    return <>{segs}</>
+
+    // Crown leaves at the very top
+    const topY = baseY - totalSegs * segH
+    elements.push(
+      <g key="crown" className="animate-unfold">
+        <path d={`M18 ${topY + 2} Q12 ${topY - 6} 6 ${topY - 2}`} fill="none" stroke={c.leaf} strokeWidth="0.9" strokeLinecap="round" />
+        <path d={`M18 ${topY + 2} Q24 ${topY - 6} 30 ${topY - 2}`} fill="none" stroke={c.leaf} strokeWidth="0.9" strokeLinecap="round" />
+        <path d={`M18 ${topY + 2} Q14 ${topY - 10} 8 ${topY - 8}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" opacity="0.8" />
+        <path d={`M18 ${topY + 2} Q22 ${topY - 10} 28 ${topY - 8}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" opacity="0.8" />
+        <path d={`M18 ${topY + 2} L18 ${topY - 5}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" opacity="0.6" />
+      </g>
+    )
+
+    return <>{elements}</>
   }
+
+  // --- Generic stages (used by all plant types) ---
+  const renderSeed = () => (
+    <g className="animate-soft-fade">
+      <ellipse cx="18" cy={svgH - 3} rx="3" ry="2" fill="#3d3832" opacity="0.5" />
+    </g>
+  )
+
+  const renderSprout = () => (
+    <g className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
+      {type === "bamboo" ? (
+        <>
+          {/* Bamboo shoot -- pointed cone shape */}
+          <path d={`M16 ${svgH} L18 ${svgH - 14} L20 ${svgH}`} fill={c.stem} opacity="0.6" />
+          <path d={`M17 ${svgH - 2} L18 ${svgH - 14} L19 ${svgH - 2}`} fill={c.accent} opacity="0.2" />
+          {/* Tiny sheath leaves */}
+          <path d={`M18 ${svgH - 8} Q14 ${svgH - 10} 13 ${svgH - 8}`} fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 11} Q22 ${svgH - 13} 23 ${svgH - 11}`} fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <line x1="18" y1={svgH} x2="18" y2={svgH - 12} stroke={c.stem} strokeWidth="1.2" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 10} Q14 ${svgH - 13} 13 ${svgH - 12}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 10} Q22 ${svgH - 13} 23 ${svgH - 12}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+        </>
+      )}
+    </g>
+  )
+
+  const renderGrowing = () => (
+    <g className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
+      {type === "bamboo" ? (
+        <>
+          {/* Young bamboo -- 2 segments visible, thin */}
+          <path d={`M16.5 ${svgH} L17 ${svgH - 28} L19 ${svgH - 28} L19.5 ${svgH} Z`} fill={c.stem} opacity="0.65" />
+          <path d={`M17 ${svgH - 1} L17.5 ${svgH - 27} L18.5 ${svgH - 27} L19 ${svgH - 1} Z`} fill={c.accent} opacity="0.12" />
+          {/* Nodes */}
+          <ellipse cx="18" cy={svgH - 14} rx="3" ry="0.8" fill="none" stroke={c.stem} strokeWidth="1" opacity="0.5" />
+          {/* Young leaves */}
+          <path d={`M18 ${svgH - 14} Q12 ${svgH - 18} 10 ${svgH - 15}`} fill="none" stroke={c.leaf} strokeWidth="0.9" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 14} Q24 ${svgH - 18} 26 ${svgH - 15}`} fill="none" stroke={c.leaf} strokeWidth="0.9" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 24} Q14 ${svgH - 27} 12 ${svgH - 25}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 24} Q22 ${svgH - 27} 24 ${svgH - 25}`} fill="none" stroke={c.leaf} strokeWidth="0.7" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <path d={`M18 ${svgH} Q17 ${svgH - 16} 18 ${svgH - 28}`} fill="none" stroke={c.stem} strokeWidth="1.5" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 14} Q12 ${svgH - 18} 10 ${svgH - 16}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 14} Q24 ${svgH - 18} 26 ${svgH - 16}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 22} Q13 ${svgH - 26} 11 ${svgH - 24}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 22} Q23 ${svgH - 26} 25 ${svgH - 24}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+        </>
+      )}
+    </g>
+  )
+
+  const renderBlooming = () => (
+    <g className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
+      {type === "bamboo" ? (
+        renderBambooCulm()
+      ) : (
+        <>
+          <path d={`M18 ${svgH} Q17 ${svgH - 20} 18 ${svgH - 38}`} fill="none" stroke={c.stem} strokeWidth="1.5" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 12} Q11 ${svgH - 16} 9 ${svgH - 14}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 12} Q25 ${svgH - 16} 27 ${svgH - 14}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 20} Q12 ${svgH - 24} 10 ${svgH - 22}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+          <path d={`M18 ${svgH - 20} Q24 ${svgH - 24} 26 ${svgH - 22}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
+
+          {type === "bonsai" && (
+            <g className="animate-unfold">
+              <circle cx="18" cy={svgH - 40} r="8" fill={c.leaf} opacity="0.3" />
+              <circle cx="14" cy={svgH - 44} r="5" fill={c.leaf} opacity="0.25" />
+              <circle cx="22" cy={svgH - 44} r="5" fill={c.leaf} opacity="0.25" />
+              <circle cx="18" cy={svgH - 46} r="4" fill={c.leaf} opacity="0.35" />
+            </g>
+          )}
+          {type === "moss" && (
+            <g className="animate-unfold">
+              <circle cx="18" cy={svgH - 38} r="6" fill={c.accent} opacity="0.35" />
+              <circle cx="14" cy={svgH - 40} r="4" fill={c.accent} opacity="0.3" />
+              <circle cx="22" cy={svgH - 40} r="4" fill={c.accent} opacity="0.3" />
+              <circle cx="18" cy={svgH - 42} r="3" fill={c.accent} opacity="0.4" />
+            </g>
+          )}
+          {type === "orchid" && (
+            <g className="animate-unfold">
+              <ellipse cx="18" cy={svgH - 42} rx="4" ry="5" fill={c.accent} opacity="0.4" />
+              <ellipse cx="14" cy={svgH - 44} rx="3" ry="4" fill={c.accent} opacity="0.3" transform={`rotate(-15 14 ${svgH - 44})`} />
+              <ellipse cx="22" cy={svgH - 44} rx="3" ry="4" fill={c.accent} opacity="0.3" transform={`rotate(15 22 ${svgH - 44})`} />
+              <circle cx="18" cy={svgH - 43} r="2" fill={c.accent} opacity="0.5" />
+            </g>
+          )}
+        </>
+      )}
+    </g>
+  )
 
   return (
     <div
@@ -132,77 +304,10 @@ export const Plant = memo(function Plant({ x, stage, type, delay, watered, glowi
         className="overflow-visible"
         style={{ marginBottom: extraH > 0 ? -extraH : 0, transition: "height 0.8s ease-out, margin-bottom 0.8s ease-out" }}
       >
-        {currentStage === "seed" && (
-          <g className="animate-soft-fade">
-            <ellipse cx="18" cy={svgH - 3} rx="3" ry="2" fill="#3d3832" opacity="0.5" />
-          </g>
-        )}
-        {currentStage === "sprout" && (
-          <g className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
-            <line x1="18" y1={svgH} x2="18" y2={svgH - 12} stroke={c.stem} strokeWidth="1.2" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 10} Q14 ${svgH - 13} 13 ${svgH - 12}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 10} Q22 ${svgH - 13} 23 ${svgH - 12}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-          </g>
-        )}
-        {currentStage === "growing" && (
-          <g className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
-            <path d={`M18 ${svgH} Q17 ${svgH - 16} 18 ${svgH - 28}`} fill="none" stroke={c.stem} strokeWidth="1.5" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 14} Q12 ${svgH - 18} 10 ${svgH - 16}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 14} Q24 ${svgH - 18} 26 ${svgH - 16}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 22} Q13 ${svgH - 26} 11 ${svgH - 24}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 22} Q23 ${svgH - 26} 25 ${svgH - 24}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-          </g>
-        )}
-        {currentStage === "blooming" && (
-          <g className="animate-emerge" style={{ transformOrigin: `18px ${svgH}px` }}>
-            {/* Main stem */}
-            <path d={`M18 ${svgH} Q17 ${svgH - 20} 18 ${stemTop + extraH}`} fill="none" stroke={c.stem} strokeWidth="1.5" strokeLinecap="round" style={{ transition: "d 0.8s ease-out" }} />
-            {/* Base leaves */}
-            <path d={`M18 ${svgH - 12} Q11 ${svgH - 16} 9 ${svgH - 14}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 12} Q25 ${svgH - 16} 27 ${svgH - 14}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 20} Q12 ${svgH - 24} 10 ${svgH - 22}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-            <path d={`M18 ${svgH - 20} Q24 ${svgH - 24} 26 ${svgH - 22}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-
-            {/* Bamboo segments that keep growing */}
-            {type === "bamboo" && renderBambooSegments()}
-
-            {/* Top crown for bamboo */}
-            {type === "bamboo" && (
-              <g className="animate-unfold">
-                <path d={`M18 ${stemTop + extraH} Q14 ${stemTop + extraH - 8} 8 ${stemTop + extraH - 6}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-                <path d={`M18 ${stemTop + extraH} Q22 ${stemTop + extraH - 8} 28 ${stemTop + extraH - 6}`} fill="none" stroke={c.leaf} strokeWidth="1" strokeLinecap="round" />
-                <path d={`M18 ${stemTop + extraH} Q16 ${stemTop + extraH - 10} 12 ${stemTop + extraH - 12}`} fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round" />
-                <path d={`M18 ${stemTop + extraH} Q20 ${stemTop + extraH - 10} 24 ${stemTop + extraH - 12}`} fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round" />
-                <path d={`M18 ${stemTop + extraH} L18 ${stemTop + extraH - 8}`} fill="none" stroke={c.leaf} strokeWidth="0.8" strokeLinecap="round" />
-              </g>
-            )}
-
-            {type === "bonsai" && (
-              <g className="animate-unfold">
-                <circle cx="18" cy={svgH - 40} r="8" fill={c.leaf} opacity="0.3" />
-                <circle cx="14" cy={svgH - 44} r="5" fill={c.leaf} opacity="0.25" />
-                <circle cx="22" cy={svgH - 44} r="5" fill={c.leaf} opacity="0.25" />
-                <circle cx="18" cy={svgH - 46} r="4" fill={c.leaf} opacity="0.35" />
-              </g>
-            )}
-            {type === "moss" && (
-              <g className="animate-unfold">
-                <circle cx="18" cy={svgH - 38} r="6" fill={c.accent} opacity="0.35" />
-                <circle cx="14" cy={svgH - 40} r="4" fill={c.accent} opacity="0.3" />
-                <circle cx="22" cy={svgH - 40} r="4" fill={c.accent} opacity="0.3" />
-                <circle cx="18" cy={svgH - 42} r="3" fill={c.accent} opacity="0.4" />
-              </g>
-            )}
-            {type === "orchid" && (
-              <g className="animate-unfold">
-                <ellipse cx="18" cy={svgH - 42} rx="4" ry="5" fill={c.accent} opacity="0.4" />
-                <ellipse cx="14" cy={svgH - 44} rx="3" ry="4" fill={c.accent} opacity="0.3" transform={`rotate(-15 14 ${svgH - 44})`} />
-                <ellipse cx="22" cy={svgH - 44} rx="3" ry="4" fill={c.accent} opacity="0.3" transform={`rotate(15 22 ${svgH - 44})`} />
-                <circle cx="18" cy={svgH - 43} r="2" fill={c.accent} opacity="0.5" />
-              </g>
-            )}
-          </g>
-        )}
+        {currentStage === "seed" && renderSeed()}
+        {currentStage === "sprout" && renderSprout()}
+        {currentStage === "growing" && renderGrowing()}
+        {currentStage === "blooming" && renderBlooming()}
       </svg>
     </div>
   )

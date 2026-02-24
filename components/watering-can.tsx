@@ -10,7 +10,7 @@ interface WateringCanProps {
   onPositionChange?: (x: number) => void
 }
 
-const HOLD_DURATION = 4000
+const HOLD_DURATION = 2000
 const REFILL_DURATION = 3000
 const CIRCLE_R = 14
 const CIRCLE_C = 2 * Math.PI * CIRCLE_R

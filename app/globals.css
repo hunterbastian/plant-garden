@@ -301,3 +301,42 @@
 .animate-pond-glow {
   animation: pond-glow 1.5s ease-in-out infinite;
 }
+
+/* Grass sway -- very gentle wind */
+@keyframes grass-sway-1 {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(3deg); }
+  75% { transform: rotate(-2deg); }
+}
+@keyframes grass-sway-2 {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-3deg); }
+  70% { transform: rotate(2.5deg); }
+}
+@keyframes grass-sway-3 {
+  0%, 100% { transform: rotate(1deg); }
+  40% { transform: rotate(-2deg); }
+  60% { transform: rotate(3deg); }
+}
+
+.animate-grass-1 {
+  animation: grass-sway-1 4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+.animate-grass-2 {
+  animation: grass-sway-2 5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+.animate-grass-3 {
+  animation: grass-sway-3 4.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* Plant water glow */
+@keyframes water-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15) drop-shadow(0 0 3px rgba(138, 172, 188, 0.3)); }
+}
+.animate-water-glow {
+  animation: water-glow 1.2s ease-in-out infinite;
+}

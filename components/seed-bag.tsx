@@ -212,6 +212,8 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
     [isDragging, dropSeeds, containerRef, applyTransform],
   )
 
+
+
   const handlePointerUp = useCallback(() => {
     setIsDragging(false)
     velocityRef.current = []

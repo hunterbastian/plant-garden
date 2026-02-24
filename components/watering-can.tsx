@@ -5,6 +5,9 @@ import { useState, useCallback, useRef, useEffect } from "react"
 interface WateringCanProps {
   onWater: (canCenterX: number) => void
   containerRef: React.RefObject<HTMLDivElement | null>
+  onNearPondChange?: (near: boolean) => void
+  onPouringChange?: (pouring: boolean) => void
+  onPositionChange?: (x: number) => void
 }
 
 const HOLD_DURATION = 4000
@@ -13,7 +16,7 @@ const CIRCLE_R = 14
 const CIRCLE_C = 2 * Math.PI * CIRCLE_R
 const MAX_WATER = 6
 
-export function WateringCan({ onWater, containerRef }: WateringCanProps) {
+export function WateringCan({ onWater, containerRef, onNearPondChange, onPouringChange, onPositionChange }: WateringCanProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [showDrops, setShowDrops] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
@@ -42,8 +45,9 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
   const [refillActive, setRefillActive] = useState(false)
   const rafPendingRef = useRef(false)
   const waterLevelRef = useRef(MAX_WATER)
+  const isDraggingRef = useRef(false)
+  const pourTiltAnimRef = useRef<number>(0)
 
-  // Direct DOM transforms
   const applyTransform = useCallback(() => {
     if (!canRef.current) return
     const { x, y } = posRef.current
@@ -63,23 +67,20 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
     return dist < 70
   }, [containerRef])
 
-  // Spring-back
   const springBack = useCallback(() => {
     const sx = posRef.current.x
     const sy = posRef.current.y
     const st = tiltRef.current
     const start = performance.now()
     const dur = 500
-
     const animate = (now: number) => {
       const t = Math.min((now - start) / dur, 1)
       const s = 1 - (1 + 5 * t) * Math.exp(-5 * t)
       posRef.current = { x: sx * (1 - s), y: sy * (1 - s) }
       tiltRef.current = st * (1 - s)
       applyTransform()
-      if (t < 1) {
-        animFrameRef.current = requestAnimationFrame(animate)
-      } else {
+      if (t < 1) animFrameRef.current = requestAnimationFrame(animate)
+      else {
         posRef.current = { x: 0, y: 0 }
         tiltRef.current = 0
         applyTransform()
@@ -88,41 +89,53 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
     animFrameRef.current = requestAnimationFrame(animate)
   }, [applyTransform])
 
-  // Tilt pour animation
+  // Tilt pour -- does NOT lock dragging
   const tiltPour = useCallback(() => {
+    const startTilt = tiltRef.current
     const start = performance.now()
     const pourDur = 500
+    const holdDur = 600
     const returnDur = 400
-    const totalDur = pourDur + 600 + returnDur
+    const totalDur = pourDur + holdDur + returnDur
 
     const animate = (now: number) => {
       const elapsed = now - start
+      let targetTilt = 0
       if (elapsed < pourDur) {
         const t = elapsed / pourDur
-        const eased = 1 - Math.pow(1 - t, 3)
-        tiltRef.current = -35 * eased
-      } else if (elapsed < pourDur + 600) {
-        tiltRef.current = -35
+        targetTilt = startTilt + (-35 - startTilt) * (1 - Math.pow(1 - t, 3))
+      } else if (elapsed < pourDur + holdDur) {
+        targetTilt = -35
       } else {
-        const t = (elapsed - pourDur - 600) / returnDur
-        const eased = 1 - Math.pow(1 - Math.min(t, 1), 3)
-        tiltRef.current = -35 * (1 - eased)
+        const t = Math.min((elapsed - pourDur - holdDur) / returnDur, 1)
+        targetTilt = -35 * (1 - (1 - Math.pow(1 - t, 3)))
+      }
+
+      // If user is dragging during pour, blend with their drag
+      if (!isDraggingRef.current) {
+        tiltRef.current = targetTilt
+      } else {
+        // Only animate the tilt component, position is user-controlled
+        tiltRef.current = targetTilt
       }
       applyTransform()
+
       if (elapsed < totalDur) {
-        animFrameRef.current = requestAnimationFrame(animate)
+        pourTiltAnimRef.current = requestAnimationFrame(animate)
       } else {
         tiltRef.current = 0
         applyTransform()
         setIsPouringAnim(false)
+        onPouringChange?.(false)
       }
     }
-    animFrameRef.current = requestAnimationFrame(animate)
-  }, [applyTransform])
+    pourTiltAnimRef.current = requestAnimationFrame(animate)
+  }, [applyTransform, onPouringChange])
 
   const triggerPour = useCallback(() => {
     if (waterLevelRef.current <= 0) return
     setIsPouringAnim(true)
+    onPouringChange?.(true)
     tiltPour()
     setTimeout(() => {
       setShowDrops(true)
@@ -134,7 +147,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       }
     }, 400)
     setTimeout(() => setShowDrops(false), 1200)
-  }, [onWater, tiltPour])
+  }, [onWater, tiltPour, onPouringChange])
 
   // Hold-to-pour rAF loop
   useEffect(() => {
@@ -142,7 +155,6 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       cancelAnimationFrame(holdRafRef.current)
       return
     }
-
     holdStartRef.current = performance.now()
     const tick = (now: number) => {
       if (!isHoldingRef.current) return
@@ -167,7 +179,6 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       cancelAnimationFrame(refillRafRef.current)
       return
     }
-
     refillStartRef.current = performance.now()
     const tick = (now: number) => {
       if (!isRefillingRef.current) return
@@ -192,6 +203,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
   const startHoldOrRefill = useCallback(() => {
     const near = checkNearPond()
     setIsNearPond(near)
+    onNearPondChange?.(near)
     if (near && waterLevelRef.current < MAX_WATER) {
       isRefillingRef.current = true
       isHoldingRef.current = false
@@ -205,7 +217,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       setRefillActive(false)
       setHoldProgress(0.001)
     }
-  }, [checkNearPond])
+  }, [checkNearPond, onNearPondChange])
 
   const stopHoldAndRefill = useCallback(() => {
     isHoldingRef.current = false
@@ -215,18 +227,19 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
     setHoldProgress(0)
     setRefillProgress(0)
     setIsNearPond(false)
+    onNearPondChange?.(false)
     cancelAnimationFrame(holdRafRef.current)
     cancelAnimationFrame(refillRafRef.current)
-  }, [])
+  }, [onNearPondChange])
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (isPouringAnim) return
       e.preventDefault()
       e.stopPropagation()
       cancelAnimationFrame(animFrameRef.current)
       stopHoldAndRefill()
       setIsDragging(true)
+      isDraggingRef.current = true
       setHasInteracted(true)
       hasMoveRef.current = false
       startPosRef.current = { x: e.clientX, y: e.clientY }
@@ -234,12 +247,12 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       startHoldOrRefill()
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
     },
-    [isPouringAnim, stopHoldAndRefill, startHoldOrRefill],
+    [stopHoldAndRefill, startHoldOrRefill],
   )
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!isDragging || isPouringAnim) return
+      if (!isDragging) return
 
       const dx = e.clientX - startPosRef.current.x
       const dy = e.clientY - startPosRef.current.y
@@ -247,7 +260,8 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
 
       if (totalMove > 6) {
         hasMoveRef.current = true
-        stopHoldAndRefill()
+        // Only stop hold if not already pouring
+        if (!isPouringAnim) stopHoldAndRefill()
       }
 
       let newX = startCanRef.current.x + dx
@@ -278,30 +292,40 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         })
       }
 
-      // Restart hold/refill after pause
+      // Report position for parallax / glow
+      if (canRef.current) {
+        const rect = canRef.current.getBoundingClientRect()
+        onPositionChange?.(rect.left + rect.width / 2)
+      }
+
+      // Restart hold/refill after pause (only if not already pouring)
       if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
-      if (hasMoveRef.current) {
+      if (hasMoveRef.current && !isPouringAnim) {
         moveTimeoutRef.current = setTimeout(() => {
-          if (!isDragging || isPouringAnim) return
+          if (!isDraggingRef.current) return
           startHoldOrRefill()
         }, 200)
       }
     },
-    [isDragging, isPouringAnim, containerRef, applyTransform, stopHoldAndRefill, startHoldOrRefill],
+    [isDragging, isPouringAnim, containerRef, applyTransform, stopHoldAndRefill, startHoldOrRefill, onPositionChange],
   )
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false)
+    isDraggingRef.current = false
     stopHoldAndRefill()
+    onPouringChange?.(false)
+    onPositionChange?.(0)
     if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     if (!isPouringAnim) springBack()
-  }, [isPouringAnim, stopHoldAndRefill, springBack])
+  }, [isPouringAnim, stopHoldAndRefill, springBack, onPouringChange, onPositionChange])
 
   useEffect(() => {
     return () => {
       cancelAnimationFrame(animFrameRef.current)
       cancelAnimationFrame(holdRafRef.current)
       cancelAnimationFrame(refillRafRef.current)
+      cancelAnimationFrame(pourTiltAnimRef.current)
       if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current)
     }
   }, [])
@@ -323,7 +347,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         right: 16,
         padding: 8,
         willChange: "transform",
-        cursor: isPouringAnim ? "default" : isDragging ? "grabbing" : "grab",
+        cursor: isDragging ? "grabbing" : "grab",
         transformOrigin: "70% 40%",
       }}
       role="button"
@@ -343,7 +367,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
             fill="none" stroke="#8aacbc" strokeWidth="2" strokeLinecap="round"
             strokeDasharray={CIRCLE_C}
             strokeDashoffset={CIRCLE_C * (1 - holdProgress)}
-            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 0.1s linear" }}
           />
           <path d="M19 13 Q19 19 15 21 Q17 25 19 25 Q21 25 23 21 Q19 19 19 13Z" fill="#8aacbc" opacity={0.2 + holdProgress * 0.4} />
         </svg>
@@ -362,7 +386,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
             fill="none" stroke="#7aab8e" strokeWidth="2" strokeLinecap="round"
             strokeDasharray={CIRCLE_C}
             strokeDashoffset={CIRCLE_C * (1 - refillProgress)}
-            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 0.1s linear" }}
           />
           <path d="M19 25 L19 14 M15 18 L19 14 L23 18" stroke="#7aab8e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.3 + refillProgress * 0.5} />
         </svg>
@@ -413,7 +437,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         </div>
       )}
 
-      {/* Water level dots with animated transitions */}
+      {/* Water level dots */}
       <div className="absolute flex gap-0.5" style={{ bottom: 2, left: "50%", transform: "translateX(-50%)" }}>
         {waterDots.map((filled, i) => (
           <div
@@ -431,7 +455,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         ))}
       </div>
 
-      {/* Hint -- fades in then out */}
+      {/* Hint */}
       {!hasInteracted && (
         <p
           className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none animate-hint"

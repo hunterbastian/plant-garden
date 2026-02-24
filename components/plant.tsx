@@ -11,6 +11,7 @@ interface PlantProps {
   type: PlantType
   delay: number
   watered?: boolean
+  glowing?: boolean
 }
 
 const COLORS: Record<PlantType, { stem: string; leaf: string; accent: string }> = {
@@ -20,7 +21,7 @@ const COLORS: Record<PlantType, { stem: string; leaf: string; accent: string }> 
   orchid:  { stem: "#6b7a5e", leaf: "#7d8e6e", accent: "#b8a0a0" },
 }
 
-export function Plant({ x, stage, type, delay, watered }: PlantProps) {
+export function Plant({ x, stage, type, delay, watered, glowing }: PlantProps) {
   const [visible, setVisible] = useState(false)
   const [currentStage, setCurrentStage] = useState<PlantStage>("seed")
   const timersRef = useRef<NodeJS.Timeout[]>([])
@@ -55,7 +56,7 @@ export function Plant({ x, stage, type, delay, watered }: PlantProps) {
 
   return (
     <div
-      className="absolute bottom-0 animate-appear"
+      className={`absolute bottom-0 animate-appear ${glowing ? "animate-water-glow" : ""}`}
       style={{ left: `${x}%`, transform: "translateX(-50%)" }}
     >
       {/* Watered shimmer -- gentle water droplets that fade */}

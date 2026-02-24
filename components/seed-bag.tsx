@@ -263,14 +263,29 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
         <circle data-inner-seed="" data-base-cx="38" data-factor="0.5" cx="38" cy="63" r="2.2" fill="#3d3832" opacity="0.13" />
       </svg>
 
-      {/* Falling seeds */}
+      {/* Falling seeds -- teardrop SVGs scattering from bag opening */}
       {showSeeds && (
-        <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none" style={{ bottom: -2 }}>
-          <div className="animate-seed-drop-1 absolute rounded-full" style={{ height: 5, width: 5, backgroundColor: "#3d3832" }} />
-          <div className="animate-seed-drop-2 absolute rounded-full" style={{ height: 4, width: 4, backgroundColor: "#5a5347", marginLeft: 10 }} />
-          <div className="animate-seed-drop-3 absolute rounded-full" style={{ height: 5, width: 5, backgroundColor: "#3d3832", marginLeft: -10 }} />
-          <div className="animate-seed-drop-4 absolute rounded-full" style={{ height: 3, width: 3, backgroundColor: "#5a5347", marginLeft: 4 }} />
-          <div className="animate-seed-drop-5 absolute rounded-full" style={{ height: 3, width: 3, backgroundColor: "#3d3832", marginLeft: -5 }} />
+        <div className="absolute pointer-events-none" style={{ bottom: 0, left: "50%", transform: "translateX(-50%)" }}>
+          {/* Seed 1 -- left arc */}
+          <svg className="absolute animate-seed-drop-1" style={{ left: -4, top: 0 }} width="8" height="10" viewBox="0 0 8 10" fill="none">
+            <path d="M4 0 Q7 3 6 7 Q5 10 4 10 Q3 10 2 7 Q1 3 4 0Z" fill="#3d3832" opacity="0.85" />
+          </svg>
+          {/* Seed 2 -- right arc */}
+          <svg className="absolute animate-seed-drop-2" style={{ left: 6, top: -2 }} width="7" height="9" viewBox="0 0 7 9" fill="none">
+            <path d="M3.5 0 Q6 2.5 5.2 6 Q4.5 9 3.5 9 Q2.5 9 1.8 6 Q1 2.5 3.5 0Z" fill="#5a5347" opacity="0.8" />
+          </svg>
+          {/* Seed 3 -- center drop */}
+          <svg className="absolute animate-seed-drop-3" style={{ left: 0, top: 1 }} width="7" height="10" viewBox="0 0 7 10" fill="none">
+            <path d="M3.5 0 Q6.2 3 5.5 7 Q4.8 10 3.5 10 Q2.2 10 1.5 7 Q0.8 3 3.5 0Z" fill="#3d3832" opacity="0.9" />
+          </svg>
+          {/* Seed 4 -- far right */}
+          <svg className="absolute animate-seed-drop-4" style={{ left: 10, top: 0 }} width="6" height="8" viewBox="0 0 6 8" fill="none">
+            <path d="M3 0 Q5.2 2 4.5 5.5 Q4 8 3 8 Q2 8 1.5 5.5 Q0.8 2 3 0Z" fill="#5a5347" opacity="0.75" />
+          </svg>
+          {/* Seed 5 -- far left */}
+          <svg className="absolute animate-seed-drop-5" style={{ left: -8, top: -1 }} width="6" height="8" viewBox="0 0 6 8" fill="none">
+            <path d="M3 0 Q5 2.2 4.3 5.5 Q3.8 8 3 8 Q2.2 8 1.7 5.5 Q1 2.2 3 0Z" fill="#3d3832" opacity="0.7" />
+          </svg>
         </div>
       )}
 

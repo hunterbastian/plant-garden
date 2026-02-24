@@ -210,6 +210,39 @@ export function GardenBox() {
             ))}
           </div>
 
+          {/* Pond - bottom right */}
+          <div
+            className="absolute pointer-events-none"
+            style={{ bottom: 24, right: 16 }}
+          >
+            <svg width="64" height="36" viewBox="0 0 64 36" fill="none">
+              {/* Pond body */}
+              <ellipse cx="32" cy="20" rx="30" ry="14" fill="#c8d8e0" opacity="0.35" />
+              <ellipse cx="32" cy="20" rx="30" ry="14" fill="none" stroke="#9ab0b8" strokeWidth="0.8" opacity="0.4" />
+              {/* Inner water */}
+              <ellipse cx="32" cy="21" rx="22" ry="9" fill="#b0c8d4" opacity="0.25" />
+              {/* Ripple lines */}
+              <ellipse cx="28" cy="19" rx="8" ry="3" fill="none" stroke="#8aacbc" strokeWidth="0.5" opacity="0.3">
+                <animate attributeName="rx" values="8;12;8" dur="4s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.3;0.1;0.3" dur="4s" repeatCount="indefinite" />
+              </ellipse>
+              <ellipse cx="36" cy="22" rx="6" ry="2.5" fill="none" stroke="#8aacbc" strokeWidth="0.4" opacity="0.25">
+                <animate attributeName="rx" values="6;10;6" dur="5s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.25;0.08;0.25" dur="5s" repeatCount="indefinite" />
+              </ellipse>
+              {/* Small stones around edge */}
+              <circle cx="8" cy="22" r="2" fill="#d6cfc4" opacity="0.5" />
+              <circle cx="56" cy="18" r="1.5" fill="#d6cfc4" opacity="0.4" />
+              <circle cx="12" cy="28" r="1.2" fill="#c4bdb2" opacity="0.4" />
+            </svg>
+            <p
+              className="text-center font-sans tracking-widest uppercase pointer-events-none"
+              style={{ fontSize: 8, color: "#9ab0b8", opacity: 0.5, marginTop: 2 }}
+            >
+              pond
+            </p>
+          </div>
+
           {/* Seed bag */}
           <SeedBag onShake={handleShake} containerRef={gardenRef} />
 

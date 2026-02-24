@@ -36,6 +36,7 @@ export function GardenBox() {
   const [isWilting, setIsWilting] = useState(false)
   const [coinPop, setCoinPop] = useState(false)
   const [pondGlow, setPondGlow] = useState(false)
+  const [pondSplash, setPondSplash] = useState(false)
   const [isPouring, setIsPouring] = useState(false)
   const [canPosX, setCanPosX] = useState(0)
   const [pebbleShift, setPebbleShift] = useState(0)
@@ -215,32 +216,81 @@ export function GardenBox() {
             ))}
           </div>
 
-          {/* Pond */}
-          <div className="absolute pointer-events-none" style={{ bottom: 24, right: 16 }}>
-            <svg width="64" height="36" viewBox="0 0 64 36" fill="none">
-              <ellipse cx="32" cy="20" rx="30" ry="14" fill="#c8d8e0" opacity={pondGlow ? 0.5 : 0.35} style={{ transition: "opacity 0.5s ease" }} />
-              <ellipse cx="32" cy="20" rx="30" ry="14" fill="none" stroke="#9ab0b8" strokeWidth={pondGlow ? 1.2 : 0.8} opacity={pondGlow ? 0.6 : 0.4} style={{ transition: "all 0.5s ease" }} />
-              <ellipse cx="32" cy="21" rx="22" ry="9" fill="#b0c8d4" opacity={pondGlow ? 0.4 : 0.25} style={{ transition: "opacity 0.5s ease" }} />
-              {/* Ripples -- faster and larger when can is near */}
-              <ellipse cx="28" cy="19" rx="8" ry="3" fill="none" stroke="#8aacbc" strokeWidth="0.5" opacity="0.3">
+          {/* Pond -- tappable */}
+          <div
+            className="absolute"
+            style={{ bottom: 24, right: 16, cursor: "pointer", pointerEvents: "auto" }}
+            onClick={() => {
+              if (pondSplash) return
+              setPondSplash(true)
+              setTimeout(() => setPondSplash(false), 700)
+            }}
+          >
+            <svg width="64" height="44" viewBox="0 0 64 44" fill="none" className="overflow-visible">
+              <ellipse cx="32" cy="24" rx="30" ry="14" fill="#c8d8e0" opacity={pondGlow ? 0.5 : 0.35} style={{ transition: "opacity 0.5s ease" }} />
+              <ellipse cx="32" cy="24" rx="30" ry="14" fill="none" stroke="#9ab0b8" strokeWidth={pondGlow ? 1.2 : 0.8} opacity={pondGlow ? 0.6 : 0.4} style={{ transition: "all 0.5s ease" }} />
+              <ellipse cx="32" cy="25" rx="22" ry="9" fill="#b0c8d4" opacity={pondGlow ? 0.4 : 0.25} style={{ transition: "opacity 0.5s ease" }} />
+
+              {/* Ripples */}
+              <ellipse cx="28" cy="23" rx="8" ry="3" fill="none" stroke="#8aacbc" strokeWidth="0.5" opacity="0.3">
                 <animate attributeName="rx" values={pondGlow ? "8;16;8" : "8;12;8"} dur={pondGlow ? "2s" : "4s"} repeatCount="indefinite" />
                 <animate attributeName="opacity" values={pondGlow ? "0.5;0.15;0.5" : "0.3;0.1;0.3"} dur={pondGlow ? "2s" : "4s"} repeatCount="indefinite" />
               </ellipse>
-              <ellipse cx="36" cy="22" rx="6" ry="2.5" fill="none" stroke="#8aacbc" strokeWidth="0.4" opacity="0.25">
+              <ellipse cx="36" cy="26" rx="6" ry="2.5" fill="none" stroke="#8aacbc" strokeWidth="0.4" opacity="0.25">
                 <animate attributeName="rx" values={pondGlow ? "6;14;6" : "6;10;6"} dur={pondGlow ? "2.5s" : "5s"} repeatCount="indefinite" />
                 <animate attributeName="opacity" values={pondGlow ? "0.45;0.1;0.45" : "0.25;0.08;0.25"} dur={pondGlow ? "2.5s" : "5s"} repeatCount="indefinite" />
               </ellipse>
-              {/* Extra ripple only when near */}
               {pondGlow && (
-                <ellipse cx="32" cy="20" rx="4" ry="2" fill="none" stroke="#8aacbc" strokeWidth="0.6" opacity="0.4">
+                <ellipse cx="32" cy="24" rx="4" ry="2" fill="none" stroke="#8aacbc" strokeWidth="0.6" opacity="0.4">
                   <animate attributeName="rx" values="4;20;4" dur="3s" repeatCount="indefinite" />
                   <animate attributeName="ry" values="2;8;2" dur="3s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite" />
                 </ellipse>
               )}
-              <circle cx="8" cy="22" r="2" fill="#d6cfc4" opacity="0.5" />
-              <circle cx="56" cy="18" r="1.5" fill="#d6cfc4" opacity="0.4" />
-              <circle cx="12" cy="28" r="1.2" fill="#c4bdb2" opacity="0.4" />
+
+              {/* Splash effect on tap */}
+              {pondSplash && (
+                <g>
+                  {/* Expanding rings */}
+                  <circle cx="32" cy="24" fill="none" stroke="#8aacbc" strokeWidth="0.8">
+                    <animate attributeName="r" from="2" to="18" dur="0.6s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.6" to="0" dur="0.6s" fill="freeze" />
+                  </circle>
+                  <circle cx="32" cy="24" fill="none" stroke="#8aacbc" strokeWidth="0.5">
+                    <animate attributeName="r" from="1" to="12" dur="0.5s" begin="0.1s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.5" to="0" dur="0.5s" begin="0.1s" fill="freeze" />
+                  </circle>
+                  {/* Water droplets flying up */}
+                  <circle cx="30" cy="22" r="1.2" fill="#8aacbc" opacity="0.7">
+                    <animate attributeName="cy" from="22" to="10" dur="0.4s" fill="freeze" />
+                    <animate attributeName="cx" from="30" to="26" dur="0.4s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.7" to="0" dur="0.4s" fill="freeze" />
+                  </circle>
+                  <circle cx="34" cy="22" r="1" fill="#8aacbc" opacity="0.6">
+                    <animate attributeName="cy" from="22" to="8" dur="0.45s" fill="freeze" />
+                    <animate attributeName="cx" from="34" to="37" dur="0.45s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.6" to="0" dur="0.45s" fill="freeze" />
+                  </circle>
+                  <circle cx="32" cy="22" r="0.8" fill="#8aacbc" opacity="0.5">
+                    <animate attributeName="cy" from="22" to="12" dur="0.38s" begin="0.05s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.5" to="0" dur="0.38s" begin="0.05s" fill="freeze" />
+                  </circle>
+                  <circle cx="28" cy="24" r="0.9" fill="#8aacbc" opacity="0.5">
+                    <animate attributeName="cy" from="24" to="14" dur="0.42s" begin="0.08s" fill="freeze" />
+                    <animate attributeName="cx" from="28" to="22" dur="0.42s" begin="0.08s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.5" to="0" dur="0.42s" begin="0.08s" fill="freeze" />
+                  </circle>
+                  <circle cx="36" cy="24" r="1.1" fill="#8aacbc" opacity="0.6">
+                    <animate attributeName="cy" from="24" to="11" dur="0.4s" begin="0.03s" fill="freeze" />
+                    <animate attributeName="cx" from="36" to="42" dur="0.4s" begin="0.03s" fill="freeze" />
+                    <animate attributeName="opacity" from="0.6" to="0" dur="0.4s" begin="0.03s" fill="freeze" />
+                  </circle>
+                </g>
+              )}
+
+              <circle cx="8" cy="26" r="2" fill="#d6cfc4" opacity="0.5" />
+              <circle cx="56" cy="22" r="1.5" fill="#d6cfc4" opacity="0.4" />
+              <circle cx="12" cy="32" r="1.2" fill="#c4bdb2" opacity="0.4" />
             </svg>
             <p
               className="text-center font-sans tracking-widest uppercase pointer-events-none"

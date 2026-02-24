@@ -24,6 +24,7 @@ const COLORS: Record<PlantType, { stem: string; leaf: string; accent: string }> 
 export function Plant({ x, stage, type, delay, watered, glowing }: PlantProps) {
   const [visible, setVisible] = useState(false)
   const [currentStage, setCurrentStage] = useState<PlantStage>("seed")
+  const [wiggling, setWiggling] = useState(false)
   const timersRef = useRef<NodeJS.Timeout[]>([])
   const c = COLORS[type]
 
@@ -52,12 +53,19 @@ export function Plant({ x, stage, type, delay, watered, glowing }: PlantProps) {
     }
   }, [visible, stage])
 
+  const handleTap = () => {
+    if (wiggling) return
+    setWiggling(true)
+    setTimeout(() => setWiggling(false), 500)
+  }
+
   if (!visible) return null
 
   return (
     <div
-      className={`absolute bottom-0 animate-appear ${glowing ? "animate-water-glow" : ""}`}
-      style={{ left: `${x}%`, transform: "translateX(-50%)" }}
+      className={`absolute bottom-0 ${wiggling ? "animate-plant-wiggle" : "animate-appear"} ${glowing ? "animate-water-glow" : ""}`}
+      style={{ left: `${x}%`, transform: "translateX(-50%)", cursor: "pointer", pointerEvents: "auto" }}
+      onClick={handleTap}
     >
       {/* Watered shimmer -- gentle water droplets that fade */}
       {watered && (

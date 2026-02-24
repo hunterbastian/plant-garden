@@ -27,6 +27,8 @@ export function GardenBox() {
     moss: 0,
     orchid: 0,
   })
+  const [isWilting, setIsWilting] = useState(false)
+  const [coinPop, setCoinPop] = useState(false)
   const gardenRef = useRef<HTMLDivElement>(null)
 
   // Stable refs for callback values to avoid re-creating handlers
@@ -74,7 +76,11 @@ export function GardenBox() {
       setNextId((prev) => prev + numSeeds)
       setSeedsDropped((prev) => {
         const next = prev + numSeeds
-        if (next % 3 === 0) setCoins((c) => c + 1)
+        if (next % 3 === 0) {
+          setCoins((c) => c + 1)
+          setCoinPop(true)
+          setTimeout(() => setCoinPop(false), 350)
+        }
         return next
       })
 
@@ -90,15 +96,17 @@ export function GardenBox() {
 
   const handleBuySeed = useCallback(
     (type: PlantType, price: number) => {
-      if (coins < price) return
-      setCoins((prev) => prev - price)
-      setInventory((prev) => ({
-        ...prev,
-        [type]: prev[type] + 5,
-      }))
-      setSelectedSeed(type)
+      setCoins((prev) => {
+        if (prev < price) return prev
+        setInventory((inv) => ({
+          ...inv,
+          [type]: inv[type] + 5,
+        }))
+        setSelectedSeed(type)
+        return prev - price
+      })
     },
-    [coins],
+    [],
   )
 
   const handleWater = useCallback(
@@ -125,6 +133,8 @@ export function GardenBox() {
 
         if (closestIdx >= 0) {
           setCoins((c) => c + 1)
+          setCoinPop(true)
+          setTimeout(() => setCoinPop(false), 350)
           return prev.map((p, i) =>
             i === closestIdx ? { ...p, watered: true } : p,
           )
@@ -136,8 +146,12 @@ export function GardenBox() {
   )
 
   const handleClear = useCallback(() => {
-    setPlants([])
-    setSeedsDropped(0)
+    setIsWilting(true)
+    setTimeout(() => {
+      setPlants([])
+      setSeedsDropped(0)
+      setIsWilting(false)
+    }, 700)
   }, [])
 
   return (
@@ -178,16 +192,17 @@ export function GardenBox() {
           {/* Shop */}
           <SeedShop
             coins={coins}
+            coinPop={coinPop}
             selectedSeed={selectedSeed}
             onSelectSeed={setSelectedSeed}
             onBuySeed={handleBuySeed}
             inventory={inventory}
           />
 
-          {/* Enso circle */}
+          {/* Enso circle -- gentle breathing */}
           <svg
-            className="absolute pointer-events-none"
-            style={{ top: 16, right: 20, opacity: 0.06 }}
+            className="absolute pointer-events-none animate-breathe"
+            style={{ top: 16, right: 20 }}
             width="60"
             height="60"
             viewBox="0 0 60 60"
@@ -206,7 +221,7 @@ export function GardenBox() {
 
           {/* Plants area */}
           <div
-            className="absolute left-0 right-0 pointer-events-none"
+            className={`absolute left-0 right-0 pointer-events-none ${isWilting ? "animate-wilt" : ""}`}
             style={{ bottom: 0, height: 180 }}
           >
             {plants.map((plant) => (

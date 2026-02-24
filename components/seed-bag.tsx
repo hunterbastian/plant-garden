@@ -272,11 +272,11 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
         </div>
       )}
 
-      {/* Hint */}
+      {/* Hint -- fades in then out */}
       {!hasInteracted && (
         <p
-          className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none animate-soft-fade"
-          style={{ bottom: -24, opacity: 0.5 }}
+          className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none animate-hint"
+          style={{ bottom: -24 }}
         >
           grab & shake
         </p>

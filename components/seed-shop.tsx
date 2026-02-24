@@ -63,13 +63,14 @@ function SeedPreview({ type }: { type: PlantType }) {
 
 interface SeedShopProps {
   coins: number
+  coinPop?: boolean
   selectedSeed: PlantType
   onSelectSeed: (type: PlantType) => void
   onBuySeed: (type: PlantType, price: number) => void
   inventory: Record<PlantType, number>
 }
 
-export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, inventory }: SeedShopProps) {
+export function SeedShop({ coins, coinPop, selectedSeed, onSelectSeed, onBuySeed, inventory }: SeedShopProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -99,7 +100,7 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
       {/* Backdrop on mobile to close shop by tapping outside */}
       {isOpen && (
         <div
-          className="absolute inset-0 z-25"
+          className="absolute inset-0 z-[25]"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
@@ -129,14 +130,17 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
               <circle cx="7" cy="7" r="6" stroke="#3d3832" strokeWidth="0.8" opacity="0.5" />
               <rect x="5" y="5" width="4" height="4" rx="0.5" stroke="#3d3832" strokeWidth="0.6" opacity="0.4" />
             </svg>
-            <span className="text-sm font-sans tracking-widest text-foreground" style={{ opacity: 0.6 }}>
+            <span
+              className={`text-sm font-sans tracking-widest text-foreground ${coinPop ? "animate-coin-pop" : ""}`}
+              style={{ opacity: 0.6 }}
+            >
               {coins}
             </span>
           </div>
 
           {/* Seed list */}
           <div className="flex flex-col gap-1">
-            {SEED_CATALOG.map((seed) => {
+            {SEED_CATALOG.map((seed, idx) => {
               const owned = inventory[seed.type] ?? 0
               const isSelected = selectedSeed === seed.type
               const canAfford = coins >= seed.price || seed.price === 0
@@ -158,9 +162,11 @@ export function SeedShop({ coins, selectedSeed, onSelectSeed, onBuySeed, invento
                     minHeight: 48,
                     borderRadius: 2,
                     border: isSelected ? "1px solid #3d3832" : "1px solid transparent",
-                    opacity: !isUnlocked && !canAfford ? 0.35 : 1,
+                    opacity: isOpen ? (!isUnlocked && !canAfford ? 0.35 : 1) : 0,
                     backgroundColor: isSelected ? "rgba(61, 56, 50, 0.04)" : "transparent",
                     cursor: !isUnlocked && !canAfford ? "default" : "pointer",
+                    transform: isOpen ? "translateX(0)" : "translateX(-12px)",
+                    transitionDelay: isOpen ? `${idx * 60}ms` : "0ms",
                   }}
                   disabled={!isUnlocked && !canAfford}
                 >

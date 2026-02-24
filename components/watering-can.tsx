@@ -38,6 +38,8 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
   const moveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isHoldingRef = useRef(false)
   const isRefillingRef = useRef(false)
+  const [holdActive, setHoldActive] = useState(false)
+  const [refillActive, setRefillActive] = useState(false)
   const rafPendingRef = useRef(false)
   const waterLevelRef = useRef(MAX_WATER)
 
@@ -136,7 +138,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
 
   // Hold-to-pour rAF loop
   useEffect(() => {
-    if (!isHoldingRef.current || isNearPond) {
+    if (!holdActive || isNearPond) {
       cancelAnimationFrame(holdRafRef.current)
       return
     }
@@ -148,6 +150,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       setHoldProgress(p)
       if (p >= 1) {
         isHoldingRef.current = false
+        setHoldActive(false)
         setHoldProgress(0)
         triggerPour()
         return
@@ -156,11 +159,11 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
     }
     holdRafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(holdRafRef.current)
-  }, [isHoldingRef.current, isNearPond, triggerPour])
+  }, [holdActive, isNearPond, triggerPour])
 
   // Refill rAF loop
   useEffect(() => {
-    if (!isRefillingRef.current) {
+    if (!refillActive) {
       cancelAnimationFrame(refillRafRef.current)
       return
     }
@@ -172,6 +175,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
       setRefillProgress(p)
       if (p >= 1) {
         isRefillingRef.current = false
+        setRefillActive(false)
         waterLevelRef.current = MAX_WATER
         setWaterLevel(MAX_WATER)
         setRefillProgress(0)
@@ -183,7 +187,7 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
     }
     refillRafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(refillRafRef.current)
-  }, [isRefillingRef.current])
+  }, [refillActive])
 
   const startHoldOrRefill = useCallback(() => {
     const near = checkNearPond()
@@ -191,10 +195,14 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
     if (near && waterLevelRef.current < MAX_WATER) {
       isRefillingRef.current = true
       isHoldingRef.current = false
-      setRefillProgress(0.001) // trigger effect
+      setRefillActive(true)
+      setHoldActive(false)
+      setRefillProgress(0.001)
     } else if (!near) {
       isHoldingRef.current = true
       isRefillingRef.current = false
+      setHoldActive(true)
+      setRefillActive(false)
       setHoldProgress(0.001)
     }
   }, [checkNearPond])
@@ -202,6 +210,8 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
   const stopHoldAndRefill = useCallback(() => {
     isHoldingRef.current = false
     isRefillingRef.current = false
+    setHoldActive(false)
+    setRefillActive(false)
     setHoldProgress(0)
     setRefillProgress(0)
     setIsNearPond(false)
@@ -421,11 +431,11 @@ export function WateringCan({ onWater, containerRef }: WateringCanProps) {
         ))}
       </div>
 
-      {/* Hint */}
+      {/* Hint -- fades in then out */}
       {!hasInteracted && (
         <p
-          className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none animate-soft-fade"
-          style={{ bottom: -20, opacity: 0.5, fontSize: 9 }}
+          className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-sans tracking-widest uppercase whitespace-nowrap pointer-events-none animate-hint"
+          style={{ bottom: -20, fontSize: 9, animationDelay: "1s" }}
         >
           hold to water
         </p>

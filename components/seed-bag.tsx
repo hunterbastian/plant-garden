@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from "react"
+import { playSound } from "@/lib/sounds"
 
 interface SeedBagProps {
   onShake: (bagCenterX: number) => void
@@ -106,6 +107,7 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
       setShowSeeds(true)
       setJustDropped(true)
       bounceSquish("drop")
+      playSound("drop")
       onShake(screenX)
       setTimeout(() => setShowSeeds(false), 1200)
       setTimeout(() => setJustDropped(false), 500)
@@ -120,6 +122,7 @@ export function SeedBag({ onShake, containerRef }: SeedBagProps) {
       cancelAnimationFrame(animFrameRef.current)
       setIsDragging(true)
       setHasInteracted(true)
+      playSound("shake")
       startPosRef.current = { x: e.clientX, y: e.clientY }
       startBagRef.current = { ...posRef.current }
       lastXRef.current = e.clientX

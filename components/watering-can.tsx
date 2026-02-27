@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from "react"
+import { playSound } from "@/lib/sounds"
 
 interface WateringCanProps {
   onWater: (canCenterX: number) => void
@@ -145,8 +146,9 @@ export function WateringCan({ onWater, containerRef, onNearPondChange, onPouring
     onPouringChange?.(true)
     tiltPour()
     setTimeout(() => {
-      setShowDrops(true)
-      waterLevelRef.current = Math.max(0, waterLevelRef.current - 1)
+    setShowDrops(true)
+    playSound("water")
+    waterLevelRef.current = Math.max(0, waterLevelRef.current - 1)
       setWaterLevel(waterLevelRef.current)
       if (canRef.current) {
         const rect = canRef.current.getBoundingClientRect()
@@ -183,9 +185,10 @@ export function WateringCan({ onWater, containerRef, onNearPondChange, onPouring
       if (p >= 1) {
         isRefillingRef.current = false
         updateRefillRing(0)
-        waterLevelRef.current = MAX_WATER
-        setWaterLevel(MAX_WATER)
-        setShowRefillBubbles(true)
+    waterLevelRef.current = MAX_WATER
+    setWaterLevel(MAX_WATER)
+    playSound("refill")
+    setShowRefillBubbles(true)
         setTimeout(() => setShowRefillBubbles(false), 800)
         return
       }

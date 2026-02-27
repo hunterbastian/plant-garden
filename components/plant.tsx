@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, memo } from "react"
+import { playSound } from "@/lib/sounds"
 
 export type PlantStage = "seed" | "sprout" | "growing" | "blooming"
 export type PlantType = "bamboo" | "bonsai" | "moss" | "orchid"
@@ -67,6 +68,7 @@ export const Plant = memo(function Plant({ x, stage, type, delay, watered, glowi
   const handleTap = () => {
     if (wiggling) return
     setWiggling(true)
+    playSound("plantTap")
     setTimeout(() => setWiggling(false), 500)
   }
 

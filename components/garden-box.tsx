@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, memo } from "react"
+import { playSound } from "@/lib/sounds"
 import { SeedBag } from "./seed-bag"
 import { Plant, type PlantStage, type PlantType } from "./plant"
 import { SeedShop } from "./seed-shop"
